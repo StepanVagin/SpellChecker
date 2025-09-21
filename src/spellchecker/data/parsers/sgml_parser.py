@@ -1,7 +1,8 @@
-import pandas as pd
 import re
 import typing as tp
 from pathlib import Path
+
+import pandas as pd
 
 
 class SGMLParser:

@@ -1,7 +1,8 @@
 import re
-import pandas as pd
-from typing import List, Dict, Optional, Union
 from pathlib import Path
+from typing import Dict, List, Optional, Union
+
+import pandas as pd
 
 
 class BirkbeckSpellingParser:
