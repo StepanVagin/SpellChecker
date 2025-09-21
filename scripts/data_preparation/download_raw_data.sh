@@ -19,4 +19,8 @@ tar -xzf conll14st-test-data.tar.gz
 mv conll14st-test-data conll2014
 rm conll14st-test-data.tar.gz
 
+echo "Downloading Birkbeck Spelling Corpus (1986)..."
+wget https://llds.ling-phil.ox.ac.uk/llds/xmlui/bitstream/handle/20.500.14106/0643/0643.zip
+unzip 0643.zip -d birkbeck_spelling_1986
+rm 0643.zip
 echo "✅ Raw data downloaded successfully"
