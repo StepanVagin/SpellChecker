@@ -5,7 +5,7 @@ __pycache__/
 
 # Data
 data/raw/
-models/
+/models/
 *.pkl
 *.bin
 
