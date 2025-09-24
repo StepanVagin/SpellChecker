@@ -1,6 +1,6 @@
 import json
-import typing as tp
 from pathlib import Path
+import typing as tp
 
 import pandas as pd
 
@@ -37,6 +37,7 @@ class GitHubTyposParser:
                     "repo": commit["repo"],
                     "commit_hash": commit["commit"],
                     "commit_message": commit["message"],
+                    "file_path": edit["src"]["path"],
                     "language": edit["src"]["lang"],
                     "source_text": edit["src"]["text"],
                     "target_text": edit["tgt"]["text"],
