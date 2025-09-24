@@ -1,6 +1,6 @@
 import re
+import typing as tp
 from pathlib import Path
-from typing import Dict, List, Optional, Union
 
 import pandas as pd
 
@@ -9,13 +9,13 @@ class BirkbeckSpellingParser:
     """Parser for the Birkbeck Spelling Error Corpus"""
 
     def __init__(self) -> None:
-        self.records: List[Dict[str, Union[str, int]]] = []
+        self.records: tp.List[tp.Dict[str, tp.Union[str, int]]] = []
 
-    def parse_file(self, file_path: Union[str, Path]) -> pd.DataFrame:
+    def parse_file(self, file_path: tp.Union[str, Path]) -> pd.DataFrame:
         """Parse the Birkbeck spelling corpus file"""
         file_path = Path(file_path)
         with open(file_path, "r", encoding="latin1") as f:
-            current_section: Optional[str] = None
+            current_section: tp.Optional[str] = None
 
             for line in f:
                 line = line.strip()
@@ -37,7 +37,7 @@ class BirkbeckSpellingParser:
         return pd.DataFrame(self.records)
 
     def _process_entry(
-        self, line: str, error_type: Optional[str], source_file: str
+        self, line: str, error_type: tp.Optional[str], source_file: str
     ) -> None:
         """Process a single corpus entry line"""
         parts = re.split(r"\s{2,}", line)
