@@ -23,4 +23,10 @@ echo "Downloading Birkbeck Spelling Corpus (1986)..."
 wget https://llds.ling-phil.ox.ac.uk/llds/xmlui/bitstream/handle/20.500.14106/0643/0643.zip
 unzip 0643.zip -d birkbeck_spelling_1986
 rm 0643.zip
+
+echo "Downloading GitHub Typo Corpus..."
+wget https://github-typo-corpus.s3.amazonaws.com/data/github-typo-corpus.v1.0.0.jsonl.gz
+gunzip github-typo-corpus.v1.0.0.jsonl.gz
+mv github-typo-corpus.v1.0.0.jsonl github_typo_corpus.jsonl
+
 echo "✅ Raw data downloaded successfully"
