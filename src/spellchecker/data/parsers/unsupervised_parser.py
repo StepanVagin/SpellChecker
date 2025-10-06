@@ -113,8 +113,13 @@ class WikipediaParser:
         """
         input_path = Path(input_dir)
 
+        # Check if directory has any wiki files
+        wiki_files = list(input_path.rglob("wiki_*"))
+        if not wiki_files:
+            raise FileNotFoundError(f"No Wikipedia files found in {input_path}")
+
         # Recursively find all wiki_* files
-        for wiki_file in sorted(input_path.rglob("wiki_*")):
+        for wiki_file in sorted(wiki_files):
             if not wiki_file.is_file():
                 continue
 

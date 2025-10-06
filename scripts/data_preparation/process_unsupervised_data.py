@@ -116,8 +116,8 @@ def process_single_corpus(
 
     # Check if input exists
     if not Path(input_path).exists():
-        print(f"❌ Error: Input path does not exist: {input_path}")
-        print(f"Please download the data first using download_unsupervised_data.sh")
+        print(f"⚠️  Warning: Input path does not exist: {input_path}")
+        print(f"Skipping {corpus} - you can download it using download_unsupervised_data.sh")
         return
 
     # Process corpus
