@@ -40,11 +40,7 @@ echo ""
 bash scripts/data_preparation/download_unsupervised_data.sh --sample
 
 echo ""
-echo "Step 4: Processing unsupervised data..."
-python scripts/data_preparation/process_unsupervised_data.py --all || echo "Some processing failed, continuing..."
-
-echo ""
-echo "Step 5: Training N-gram models..."
+echo "Step 4: Training N-gram models..."
 python scripts/train_ngram_model.py \
     --data "data/processed/unsupervised/*.txt" \
     --output models/ngram
@@ -57,7 +53,6 @@ echo ""
 echo "Data sources downloaded (sample mode):"
 echo "  - Wikipedia: 5 articles (via API)"
 echo "  - CC-News: 50K articles (~500MB)"
-echo "  - BookCorpus: 50K passages (~500MB)"
 echo ""
 echo "Total: ~1GB of training data"
 echo ""

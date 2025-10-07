@@ -8,8 +8,6 @@
 #   ./download_unsupervised_data.sh           # Download full datasets
 #   ./download_unsupervised_data.sh --sample  # Download limited samples (~2GB)
 
-set -e
-
 # Parse arguments
 SAMPLE_MODE=false
 if [ "$1" == "--sample" ]; then
@@ -37,74 +35,32 @@ echo "================================================"
 # 1. Wikipedia Dumps
 # ============================================================================
 echo ""
-echo "📚 Wikipedia Setup..."
+echo "Wikipedia Setup..."
 
 # Create Wikipedia directory
-mkdir -p wikipedia
-cd wikipedia
+WIKIPEDIA_DIR="$PROJECT_ROOT/data/raw/unsupervised/wikipedia"
+mkdir -p "$WIKIPEDIA_DIR"
 
 if [ "$SAMPLE_MODE" = true ]; then
     # Sample mode: Download sample articles via Wikipedia API
     echo "Sample mode: Downloading sample Wikipedia articles via API..."
-    mkdir -p extracted/AA
+    mkdir -p "$WIKIPEDIA_DIR/extracted/AA"
     
-    cat > download_wiki_sample.py << 'EOFPYTHON'
-import urllib.request
-import json
-
-articles = [
-    "Python_(programming_language)",
-    "Machine_learning",
-    "Natural_language_processing",
-    "Artificial_intelligence",
-    "Data_science"
-]
-
-wiki_texts = []
-
-for article_title in articles:
-    try:
-        url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{article_title}"
-        req = urllib.request.Request(
-            url,
-            headers={
-                'User-Agent': 'SpellCheckerBot/1.0 (Educational Project)',
-                'Accept': 'application/json'
-            }
-        )
-        
-        with urllib.request.urlopen(req, timeout=10) as response:
-            data = json.loads(response.read())
-            title = data.get("title", article_title.replace("_", " "))
-            extract = data.get("extract", "")
-            
-            wiki_text = f'<doc id="{len(wiki_texts)+1}" title="{title}">\n{extract}\n</doc>'
-            wiki_texts.append(wiki_text)
-            print(f"  ✓ Downloaded: {title}")
-    
-    except Exception as e:
-        print(f"  ✗ Failed: {article_title}: {e}")
-
-if wiki_texts:
-    with open("extracted/AA/wiki_00", "w", encoding="utf-8") as f:
-        f.write("\n".join(wiki_texts))
-    print(f"\n✅ Downloaded {len(wiki_texts)} Wikipedia articles")
-else:
-    print("\n❌ Failed to download any Wikipedia articles")
-    exit(1)
-EOFPYTHON
-
-    python download_wiki_sample.py || echo "⚠️  Wikipedia sample download failed"
+    cd "$WIKIPEDIA_DIR"
+    python "$SCRIPT_DIR/data/raw/unsupervised/download_wiki_sample.py" || {
+        echo "Wikipedia sample download failed"
+    }
 else
     # Full mode: Download complete Wikipedia dump
     echo "Downloading English Wikipedia articles dump..."
     echo "Note: This is a large download (~20GB compressed)"
     
-    if [ ! -f "enwiki-latest-pages-articles.xml.bz2" ]; then
+    if [ ! -f "$WIKIPEDIA_DIR/enwiki-latest-pages-articles.xml.bz2" ]; then
+        cd "$WIKIPEDIA_DIR"
         wget -c "https://dumps.wikimedia.org/${WIKI_LANG}wiki/latest/${WIKI_LANG}wiki-latest-pages-articles.xml.bz2" \
             -O enwiki-latest-pages-articles.xml.bz2
         
-        echo "✅ Wikipedia dump downloaded"
+        echo "Wikipedia dump downloaded"
         echo "Note: You need to extract text using WikiExtractor:"
         echo "  pip install wikiextractor"
         echo "  wikiextractor enwiki-latest-pages-articles.xml.bz2 -o extracted"
@@ -113,184 +69,112 @@ else
     fi
 fi
 
-cd ..
-
 # ============================================================================
 # 2. CC-News (Common Crawl News)
 # ============================================================================
 echo ""
-echo "📰 CC-News Setup..."
+echo "CC-News Setup..."
 
-mkdir -p ccnews
-cd ccnews
+CCNEWS_DIR="$PROJECT_ROOT/data/raw/unsupervised/ccnews"
+mkdir -p "$CCNEWS_DIR"
 
-if [ ! -f "ccnews.jsonl" ]; then
-    echo "Downloading CC-News articles..."
-    
-    cat > download_ccnews.py << EOF
-"""
-Download CC-News dataset using Hugging Face datasets library.
-
-Install: pip install datasets
-"""
-
-from datasets import load_dataset
-import json
-import sys
-
-def download_ccnews(output_file="ccnews.jsonl", num_samples=None):
-    """
-    Download CC-News dataset and save as JSONL.
-    
-    Args:
-        output_file: Output file path
-        num_samples: Number of samples to download (None for all)
-    """
-    print(f"Loading CC-News dataset from Hugging Face...")
-    if num_samples:
-        print(f"Limited to {num_samples} articles")
-    
-    try:
-        # Load dataset
-        # Note: Full dataset is very large (~70GB), so we can limit samples
-        dataset = load_dataset("cc_news", split="train", streaming=True)
-        
-        count = 0
-        with open(output_file, "w", encoding="utf-8") as f:
-            for example in dataset:
-                # Write as JSONL
-                json.dump({
-                    "title": example.get("title", ""),
-                    "text": example.get("text", ""),
-                    "domain": example.get("domain", ""),
-                    "date": example.get("date", ""),
-                }, f)
-                f.write("\n")
-                
-                count += 1
-                if num_samples and count >= num_samples:
-                    break
-                
-                if count % 10000 == 0:
-                    print(f"Downloaded {count} articles...")
-        
-        print(f"✅ Downloaded {count} articles to {output_file}")
-        return True
-    except Exception as e:
-        print(f"Error downloading CC-News: {e}")
-        return False
-
-if __name__ == "__main__":
-    # Get num_samples from command line or use default
-    num_samples = int(sys.argv[1]) if len(sys.argv) > 1 else None
-    success = download_ccnews("ccnews.jsonl", num_samples=num_samples)
-    sys.exit(0 if success else 1)
-EOF
-
-    # Run with appropriate sample size
-    if [ "$SAMPLE_MODE" = true ]; then
-        python download_ccnews.py 50000 || echo "CC-News download failed, continuing..."
-    else
-        python download_ccnews.py 100000 || echo "CC-News download failed, continuing..."
-    fi
+echo "Downloading and processing CC-News (compressed pickle)..."
+cd "$CCNEWS_DIR"
+# Run with appropriate sample size, write directly to cleaned output
+if [ "$SAMPLE_MODE" = true ]; then
+    python "$SCRIPT_DIR/data/raw/unsupervised/download_ccnews.py" 50000 ccnews.pkl.gz || {
+        echo "CC-News download failed, continuing..."
+    }
 else
-    echo "CC-News already downloaded, skipping..."
+    python "$SCRIPT_DIR/data/raw/unsupervised/download_ccnews.py" "" ccnews.pkl.gz || {
+        echo "CC-News download failed, continuing..."
+    }
 fi
 
-cd ..
+# =============================================================================
+# 3. BookCorpus (disabled for debugging)
+# =============================================================================
+# echo ""
+# echo "BookCorpus Setup..."
+#
+# BOOKCORPUS_DIR="$PROJECT_ROOT/data/raw/unsupervised/bookcorpus"
+# mkdir -p "$BOOKCORPUS_DIR/books"
+#
+# echo "Downloading and processing BookCorpus (compressed pickle)..."
+# cd "$BOOKCORPUS_DIR"
+# # Run with appropriate sample size, write directly to cleaned output in books/ for compatibility
+# if [ "$SAMPLE_MODE" = true ]; then
+#     python "$SCRIPT_DIR/data/raw/unsupervised/download_bookcorpus.py" 50000 books/bookcorpus.pkl.gz --stream10k || {
+#         echo "BookCorpus download failed, continuing..."
+#     }
+# else
+#     python "$SCRIPT_DIR/data/raw/unsupervised/download_bookcorpus.py" "" books/bookcorpus.pkl.gz || {
+#         echo "BookCorpus download failed, continuing..."
+#     }
+# fi
 
 # ============================================================================
-# 3. BookCorpus
+# Processing downloaded corpora
 # ============================================================================
 echo ""
-echo "📖 BookCorpus Setup..."
+echo "Processing downloaded corpora..."
 
-mkdir -p bookcorpus/books
-cd bookcorpus
+# Ensure processed directory exists and return to project root before Python
+mkdir -p "$PROJECT_ROOT/data/processed/unsupervised"
+cd "$PROJECT_ROOT"
 
-if [ ! -f "books/bookcorpus.txt" ]; then
-    echo "Downloading BookCorpus passages..."
-    
-    cat > download_bookcorpus.py << EOF
-"""
-Download BookCorpus dataset using Hugging Face datasets library.
-
-Install: pip install datasets
-"""
-
-from datasets import load_dataset
+PYTHONPATH="$PROJECT_ROOT/src" python - <<'PY'
 from pathlib import Path
-import sys
+from spellchecker.data.parsers.unsupervised_parser import (
+    UniversalTextCleaner,
+    process_unsupervised_corpus,
+)
 
-def download_bookcorpus(output_dir="books", max_passages=None):
-    """
-    Download BookCorpus dataset and save as text files.
-    
-    Args:
-        output_dir: Output directory for book files
-        max_passages: Maximum number of passages to download (None for all)
-    """
-    print("Loading BookCorpus dataset from Hugging Face...")
-    if max_passages:
-        print(f"Limited to {max_passages} passages")
-    
-    # Create output directory
-    output_path = Path(output_dir)
-    output_path.mkdir(exist_ok=True)
-    
-    # Load dataset using the working bookcorpusopen dataset
+base_raw = Path("data/raw/unsupervised")
+base_out = Path("data/processed/unsupervised")
+base_out.mkdir(parents=True, exist_ok=True)
+
+cleaner = UniversalTextCleaner()
+
+tasks = [
+    ("wikipedia", base_raw / "wikipedia" / "extracted", base_out / "wikipedia.txt"),
+    # For ccnews and bookcorpus, the downloaders already wrote cleaned text (compressed)
+    ("ccnews", base_raw / "ccnews" / "ccnews.pkl.gz", base_out / "ccnews.txt"),
+    # ("bookcorpus", base_raw / "bookcorpus" / "books" / "bookcorpus.pkl.gz", base_out / "bookcorpus.txt"),
+]
+
+for corpus, input_path, output_path in tasks:
     try:
-        dataset = load_dataset("lucadiliello/bookcorpusopen", split="train", streaming=True)
+        print(f"Processing {corpus}...")
+        if corpus == "wikipedia":
+            process_unsupervised_corpus(corpus, str(input_path), str(output_path), cleaner)
+        else:
+            # For ccnews and bookcorpus, decompress pickle and write to processed .txt
+            import gzip, pickle
+            src = Path(input_path)
+            dst = Path(output_path)
+            if src.exists() and src.stat().st_size > 0:
+                try:
+                    with gzip.open(src, "rb") as f:
+                        texts = pickle.load(f)
+                    dst.parent.mkdir(parents=True, exist_ok=True)
+                    with open(dst, "w", encoding="utf-8") as out_f:
+                        for t in texts:
+                            out_f.write(t + "\n")
+                except Exception as e:
+                    print(f"Failed to decompress {src}: {e}")
+            else:
+                print(f"Source not found, skipping copy: {src}")
     except Exception as e:
-        print(f"Error loading BookCorpus: {e}")
-        return False
-    
-    # Save as single file (one sentence per line)
-    output_file = output_path / "bookcorpus.txt"
-    
-    print(f"Saving to {output_file}...")
-    count = 0
-    with open(output_file, "w", encoding="utf-8") as f:
-        for example in dataset:
-            text = example["text"].strip()
-            if text:
-                f.write(text + "\n")
-                count += 1
-                
-                if max_passages and count >= max_passages:
-                    break
-                
-                if count % 10000 == 0:
-                    print(f"Processed {count} passages...")
-    
-    print(f"✅ BookCorpus saved to {output_file} ({count} passages)")
-    return True
-
-if __name__ == "__main__":
-    # Get max_passages from command line or use default
-    max_passages = int(sys.argv[1]) if len(sys.argv) > 1 else None
-    success = download_bookcorpus("books", max_passages=max_passages)
-    sys.exit(0 if success else 1)
-EOF
-
-    # Run with appropriate sample size
-    if [ "$SAMPLE_MODE" = true ]; then
-        python download_bookcorpus.py 50000 || echo "BookCorpus download failed, continuing..."
-    else
-        python download_bookcorpus.py || echo "BookCorpus download failed, continuing..."
-    fi
-else
-    echo "BookCorpus already downloaded, skipping..."
-fi
-
-cd ..
+        print(f"Processing failed for {corpus}: {e}")
+PY
 
 # ============================================================================
 # Summary
 # ============================================================================
 echo ""
 echo "================================================"
-echo "✅ Data Download Complete"
+echo "Data Download and Processing Complete"
 echo "================================================"
 echo ""
 if [ "$SAMPLE_MODE" = true ]; then
@@ -302,16 +186,8 @@ else
     echo "Full datasets downloaded:"
     echo "  - Wikipedia: Full dump (requires extraction)"
     echo "  - CC-News: 100K articles"
-    echo "  - BookCorpus: Full corpus"
-    echo ""
-    echo "Note: If Wikipedia dump was downloaded, extract it with:"
-    echo "  pip install wikiextractor"
-    echo "  cd data/raw/unsupervised/wikipedia"
-    echo "  wikiextractor enwiki-latest-pages-articles.xml.bz2 -o extracted"
+    # echo "  - BookCorpus: Full corpus"
 fi
-echo ""
-echo "Next: Process the data with:"
-echo "  python scripts/data_preparation/process_unsupervised_data.py --all"
 echo ""
 
 

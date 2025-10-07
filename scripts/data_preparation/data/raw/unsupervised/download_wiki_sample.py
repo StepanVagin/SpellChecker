@@ -1,5 +1,6 @@
 import urllib.request
 import json
+import sys
 
 articles = [
     "Python_(programming_language)",
@@ -29,15 +30,17 @@ for article_title in articles:
             
             wiki_text = f'<doc id="{len(wiki_texts)+1}" title="{title}">\n{extract}\n</doc>'
             wiki_texts.append(wiki_text)
-            print(f"  ✓ Downloaded: {title}")
+            print(f"  Downloaded: {title}")
     
     except Exception as e:
-        print(f"  ✗ Failed: {article_title}: {e}")
+        print(f"  Failed: {article_title}: {e}")
 
 if wiki_texts:
     with open("extracted/AA/wiki_00", "w", encoding="utf-8") as f:
         f.write("\n".join(wiki_texts))
-    print(f"\n✅ Downloaded {len(wiki_texts)} Wikipedia articles")
+    print(f"\nDownloaded {len(wiki_texts)} Wikipedia articles")
+    sys.exit(0)
 else:
-    print("\n❌ Failed to download any Wikipedia articles")
-    exit(1)
+    print("\nFailed to download any Wikipedia articles")
+    sys.exit(1)
+
