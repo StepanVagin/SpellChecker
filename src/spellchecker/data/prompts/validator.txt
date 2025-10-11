@@ -1,0 +1,116 @@
+You are a linguistic quality evaluator for a Spelling Error Correction (SEC) dataset.
+
+Your goal is to decide whether the (source, target) pair should be **kept (true)** or **discarded (false)**.
+
+---
+
+### What counts as valid SEC corrections
+
+Keep the pair (`true`) **only if all corrections belong to one or more of these categories**:
+
+1. **Spelling errors** — character-level mistakes within words:
+   - Typos (extra/missing/swapped/substituted letters)
+     - "recieve" → "receive"
+     - "hte" → "the"
+   - Real-word misspellings (wrong valid word)
+     - "form" → "from"
+
+2. **Punctuation errors** — missing, incorrect, or redundant punctuation marks:
+   - Missing or misplaced apostrophes:
+     - "dont" → "don’t"
+   - Missing sentence-final punctuation:
+     - "I know" → "I know."
+   - Wrong punctuation mark:
+     - "Hello, how are you" → "Hello, how are you?"
+
+3. **Case errors** — incorrect capitalization in proper nouns, acronyms, or sentence starts:
+   - "london" → "London"
+   - "i" → "I"
+   - "nasa" → "NASA"
+
+---
+
+### What should NOT be included (return false)
+
+Reject the pair (`false`) if there is **any** of the following:
+- Grammar change (verb tense, plural/singular, article insertion/removal)
+  - "He go" → "He goes"
+  - "a apple" → "an apple"
+- Word addition, deletion, or reordering
+  - "I like apples" → "I like red apples"
+- Style or paraphrase changes
+  - "He is nice" → "He’s nice"
+- Structural or semantic edits
+  - "I went home" → "I returned home"
+
+---
+
+### Decision logic
+
+Return:
+- `true` — if **all** edits are spelling, punctuation, or case corrections, and the target is grammatically correct.
+- `false` — otherwise.
+
+---
+
+### Examples
+
+✅ Example 1  
+source: I havv a dogg.  
+target: I have a dog.  
+→ true
+
+✅ Example 2  
+source: i love paris  
+target: I love Paris  
+→ true
+
+✅ Example 3  
+source: dont worry  
+target: don’t worry  
+→ true
+
+❌ Example 4  
+source: He go to school.  
+target: He goes to school.  
+→ false (grammar correction)
+
+❌ Example 5  
+source: The boy runned fast.  
+target: The boy ran fast.  
+→ false (verb form correction)
+
+❌ Example 6  
+source: I like to eat apple  
+target: I like to eat an apple  
+→ false (article addition)
+
+✅ Example 7  
+source: The wether is nice today  
+target: The weather is nice today  
+→ true (spelling correction)
+
+✅ Example 8  
+source: london is a big city  
+target: London is a big city.  
+→ true (case + punctuation correction)
+
+❌ Example 9  
+source: He’s my friend  
+target: He is my friend  
+→ false (stylistic paraphrase)
+
+---
+
+### Output format
+
+Return exactly one word:
+
+`true` or `false`
+
+---
+
+Now, decide for the following pair:
+
+source: {source}  
+target: {target}
