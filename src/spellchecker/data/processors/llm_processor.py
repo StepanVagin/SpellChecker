@@ -1,13 +1,14 @@
 import os
 import typing as tp
 from pathlib import Path
+from dataclasses import dataclass
 
 import pandas as pd
 from tqdm import tqdm
 
 from spellchecker.data.processors.utils import query_llm
 
-
+@dataclass
 class LLMProcessor:
     """Generic LLM processor for dataframe columns."""
 

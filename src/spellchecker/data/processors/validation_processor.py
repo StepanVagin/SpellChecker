@@ -10,16 +10,16 @@ from spellchecker.data.processors.utils import query_llm
 class Validator(LLMProcessor):
     """Text validation processor."""
 
-    def __init__(self, prompt_path: Path = Path("../prompts/validator.txt"), **kwargs):
+    def __init__(
+        self,
+        prompt_path: Path = Path("spellchecker/data/prompts/validator.txt"),
+        **kwargs
+    ):
         with open(prompt_path, "r", encoding="utf-8") as f:
             prompt_template = f.read()
 
         super().__init__(
-            prompt_template=prompt_template,
-            output_column="is_valid",
-            temperature=0.0,
-            max_tokens=10,
-            **kwargs
+            prompt_template=prompt_template, output_column="is_valid", **kwargs
         )
 
     def process_row(self, row: pd.Series) -> str:

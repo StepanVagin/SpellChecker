@@ -19,7 +19,6 @@ class Corruptor(LLMProcessor):
         super().__init__(
             prompt_template=prompt_template,
             output_column="target_text",
-            temperature=0.7,
             **kwargs
         )
 

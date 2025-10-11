@@ -2,11 +2,12 @@ import argparse
 from pathlib import Path
 import typing as tp
 
-import spellchecker.data.processors as dp
+from spellchecker.data.processors.validation_processor import Validator
+from spellchecker.data.processors.corruption_processor import Corruptor
 
 PROCESSORS = {
-    "validate": dp.validation_processor.Validator,
-    "corrupt": dp.corruption_processor.Corruptor,
+    "validate": Validator,
+    "corrupt": Corruptor,
 }
 
 
@@ -81,9 +82,7 @@ def main():
     args = parse_args()
 
     # Get processor class
-    processor_class: dp.llm_processor.LLMProcessor = PROCESSORS[
-        args.processor
-    ]
+    processor_class = PROCESSORS[args.processor]
 
     # Build processor kwargs
     processor_kwargs = {
@@ -104,7 +103,7 @@ def main():
         processor_kwargs["max_tokens"] = args.max_tokens
 
     # Initialize processor
-    processor: LL = processor_class(**processor_kwargs)
+    processor = processor_class(**processor_kwargs)
 
     # Get input files
     input_files = get_input_files(args.input)
@@ -117,8 +116,8 @@ def main():
         # Process dataframe
         result = processor.process_dataframe(input_file)
 
-        # Apply filters if requested
-        if args.filter and args.processor == "validate":
+        # Validation processor
+        if args.processor == "validate":
             valid_count = result["is_valid"].sum()
             result = result[result["is_valid"]]
             print(f"Filtered: {valid_count}/{len(result)} valid pairs")
@@ -137,3 +136,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# python -m spellchecker.data.processors.run_processor validate path_to_unfiltered_sft_corpus.csv -o path_to_save.csv --model model_name
