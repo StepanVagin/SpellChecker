@@ -14,12 +14,16 @@ from spellchecker.data.processors.utils import query_llm
 class Corruptor(LLMProcessor):
     """Text corruption processor."""
 
-    def __init__(self, prompt_path: Path = Path("../prompts/corruptor.txt"), **kwargs):
+    def __init__(
+        self,
+        prompt_path: Path = Path("spellchecker/data/prompts/corruptor.txt"),
+        **kwargs,
+    ):
         with open(prompt_path, "r", encoding="utf-8") as f:
             prompt_template = f.read()
 
         super().__init__(
-            prompt_template=prompt_template, output_column="target_text", **kwargs
+            prompt_template=prompt_template, output_column="source_text", **kwargs
         )
 
         self.corruption_mode: tp.Literal["llm", "heuristic"] = kwargs.get(
