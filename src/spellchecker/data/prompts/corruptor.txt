@@ -1,59 +1,72 @@
 You are a professional linguistic data generator for a Spelling Error Correction (SEC) dataset.
 
-Your task is to introduce realistic **spelling, punctuation, and case** mistakes into a clean passage of text.
+Your task is to introduce realistic **spelling, punctuation, and case** mistakes into a clean passage of text — or mark it as already corrupted if the passage is unsuitable for SEC.
 
 ---
 
 ### Rules
 
-1. **Preserve the meaning and grammar** of the text.  
+1. **Preserve the meaning and grammar** of the text.
    Only modify the surface form (letters, punctuation, capitalization).
 
 2. **Respect the requested parameters:**
-   - `num_errors`: number of visible mistakes to introduce.
-   - `error_types`: which kinds of errors are allowed (choose only from this list):
-     - "spelling" — typos, misspellings, letter swaps, missing or extra letters.
-       - e.g., "receive" → "recieve", "the" → "teh"
-     - "punctuation" — missing, wrong, or redundant punctuation marks.
-       - e.g., "dont" → "don’t", "I know" → "I know."
-     - "case" — incorrect capitalization.
-       - e.g., "London" → "london", "NASA" → "Nasa"
+
+   * `num_errors`: number of visible mistakes to introduce.
+   * `error_types`: which kinds of errors are allowed (choose only from this list):
+
+     * "spelling" — typos, misspellings, letter swaps, missing or extra letters.
+
+       * e.g., "receive" → "recieve", "the" → "teh"
+     * "punctuation" — missing, wrong, or redundant punctuation marks.
+
+       * e.g., "dont" → "don’t", "I know" → "I know."
+     * "case" — incorrect capitalization.
+
+       * e.g., "London" → "london", "NASA" → "Nasa"
 
 3. **Insert approximately the specified number of errors.**
    If multiple words can be corrupted, distribute mistakes naturally.
 
 4. **Do not:**
-   - add or remove whole words,
-   - change grammar or syntax,
-   - paraphrase or simplify the text.
 
-5. The result must remain readable and human-like.
+   * add or remove whole words,
+   * change grammar or syntax,
+   * paraphrase or simplify the text.
+
+5. **If the input passage already contains non-SEC errors** (e.g., grammar errors, missing words, malformed sentences), or is otherwise unsuitable for SEC, respond with `"CORRUPTED"` — do **not** try to modify it further.
+
+6. The result must remain readable and human-like.
 
 ---
 
 ### Output format
-Return **only the corrupted passage text** — nothing else.  
+
+Return **only the corrupted passage text** — nothing else.
 No explanations, no JSON, no quotes.
+If the example is unsuitable for SEC, return only: `CORRUPTED`.
 
 ---
 
-### Example 1
+### Examples
+
+**Example 1 — normal SEC corruption:**
 
 **Input:**
+
 ```json
 {
   "passage": "The scientists published their findings in the journal Nature.",
   "num_errors": 2,
   "error_types": ["spelling"]
 }
-````
+```
 
 **Output:**
 The scintists publised their findings in the journal Nature.
 
 ---
 
-### Example 2
+**Example 2 — case and punctuation errors:**
 
 **Input:**
 
@@ -70,13 +83,30 @@ i love Paris and london
 
 ---
 
+**Example 3 — already corrupted / unsuitable:**
+
+**Input:**
+
+```json
+{
+  "passage": "Ths sentnce has multple errors and missing words",
+  "num_errors": 3,
+  "error_types": ["spelling", "punctuation"]
+}
+```
+
+**Output:**
+CORRUPTED
+
+---
+
 Now generate the corrupted version for the following input:
 
 ```json
 {
-  "passage": "{passage}",
-  "num_errors": {num_errors},
-  "error_types": {error_types}
+  "passage": "<<PASSAGE>>",
+  "num_errors": <<NUM_ERRORS>>,
+  "error_types": <<ERROR_TYPES>>
 }
 ```
 

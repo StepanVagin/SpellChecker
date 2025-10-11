@@ -16,6 +16,7 @@ class Corruptor(LLMProcessor):
 
     def __init__(
         self,
+        corruption_mode: str,
         prompt_path: Path = Path("spellchecker/data/prompts/corruptor.txt"),
         **kwargs,
     ):
@@ -26,9 +27,7 @@ class Corruptor(LLMProcessor):
             prompt_template=prompt_template, output_column="source_text", **kwargs
         )
 
-        self.corruption_mode: tp.Literal["llm", "heuristic"] = kwargs.get(
-            "corruption_mode", "heuristic"
-        )
+        self.corruption_mode: tp.Literal["llm", "heuristic"] = corruption_mode
         self.punctuations: tp.List[str] = list(",.;:!?")
         self.letters: tp.List[str] = string.ascii_letters
 
@@ -118,10 +117,10 @@ class Corruptor(LLMProcessor):
         passage: str = row["target_text"]
         error_types: tp.List[str] = self._sample_error_types()
         num_of_errors: int = self._sample_num_errors(passage=passage)
-        prompt = self.prompt_template.format(
-            passage=row["target_text"],
-            num_errors=num_of_errors,
-            error_types=json.dumps(error_types, ensure_ascii=False),
+        prompt = (
+            self.prompt_template.replace("<<PASSAGE>>", row["target_text"])
+            .replace("<<NUM_ERRORS>>", str(num_of_errors))
+            .replace("<<ERROR_TYPES>>", json.dumps(error_types))
         )
 
         response = "".join(
@@ -132,6 +131,7 @@ class Corruptor(LLMProcessor):
                 max_tokens=500,
             )
         )
+
         return response.strip()
 
     def _sample_error_types(self):
@@ -147,24 +147,14 @@ class Corruptor(LLMProcessor):
         else:
             return ["spelling", "punctuation", "case"]
 
-    def _sample_num_errors(
-        self, passage: str, max_errors_short: int = 3, max_errors_long: int = 6
-    ) -> int:
-        """Sample the number of SEC errors to insert based on passage length."""
-        num_tokens = len(passage.split())
+    def _sample_num_errors(self, passage: str) -> int:
+        length: int = len(passage)
 
-        # Decide max errors based on length
-        max_errors = max_errors_short if num_tokens < 40 else max_errors_long
+        if length < 150:
+            choices = [1, 2, 3, 4]
+            weights = [0.3, 0.4, 0.25, 0.05]
+        else:
+            choices = [1, 2, 3, 4, 5, 6, 7, 8]
+            weights = [0.02, 0.03, 0.1, 0.2, 0.25, 0.2, 0.1, 0.1]
 
-        # Probabilistic distribution for number of errors
-        distribution: tp.List[float] = [0.05, 0.35, 0.30, 0.20, 0.10]
-
-        if max_errors > 4:
-            extra = max_errors - 4
-            distribution += [0.05] * extra
-
-        total = sum(distribution[: max_errors + 1])
-        probs = [p / total for p in distribution[: max_errors + 1]]
-
-        errors = random.choices(range(max_errors + 1), weights=probs, k=1)[0]
-        return errors
+        return random.choices(choices, weights=weights, k=1)[0]

@@ -65,6 +65,11 @@ def parse_args():
         "--max-tokens", type=int, default=500, help="Max tokens for generation"
     )
 
+    # For corruption processor
+    parser.add_argument(
+        "--corruption-mode", type=str, default="llm", help="Either llm or heuristic"
+    )
+
     return parser.parse_args()
 
 
@@ -101,6 +106,9 @@ def main():
 
     if args.max_tokens is not None:
         processor_kwargs["max_tokens"] = args.max_tokens
+
+    if args.processor == "corrupt" and hasattr(args, "corruption_mode"):
+        processor_kwargs["corruption_mode"] = args.corruption_mode
 
     # Initialize processor
     processor = processor_class(**processor_kwargs)
