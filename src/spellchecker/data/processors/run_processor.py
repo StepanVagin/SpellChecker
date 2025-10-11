@@ -1,9 +1,9 @@
 import argparse
-from pathlib import Path
 import typing as tp
+from pathlib import Path
 
-from spellchecker.data.processors.validation_processor import Validator
 from spellchecker.data.processors.corruption_processor import Corruptor
+from spellchecker.data.processors.validation_processor import Validator
 
 PROCESSORS = {
     "validate": Validator,
