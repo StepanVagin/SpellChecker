@@ -143,8 +143,7 @@ class Corruptor(LLMProcessor):
     def _sample_num_errors(
         self, passage: str, max_errors_short: int = 3, max_errors_long: int = 6
     ) -> int:
-        """
-        Sample the number of SEC errors to insert based on passage length."""
+        """Sample the number of SEC errors to insert based on passage length."""
         num_tokens = len(passage.split())
 
         # Decide max errors based on length
