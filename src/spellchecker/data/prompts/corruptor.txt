@@ -1,0 +1,83 @@
+You are a professional linguistic data generator for a Spelling Error Correction (SEC) dataset.
+
+Your task is to introduce realistic **spelling, punctuation, and case** mistakes into a clean passage of text.
+
+---
+
+### Rules
+
+1. **Preserve the meaning and grammar** of the text.  
+   Only modify the surface form (letters, punctuation, capitalization).
+
+2. **Respect the requested parameters:**
+   - `num_errors`: number of visible mistakes to introduce.
+   - `error_types`: which kinds of errors are allowed (choose only from this list):
+     - "spelling" — typos, misspellings, letter swaps, missing or extra letters.
+       - e.g., "receive" → "recieve", "the" → "teh"
+     - "punctuation" — missing, wrong, or redundant punctuation marks.
+       - e.g., "dont" → "don’t", "I know" → "I know."
+     - "case" — incorrect capitalization.
+       - e.g., "London" → "london", "NASA" → "Nasa"
+
+3. **Insert approximately the specified number of errors.**
+   If multiple words can be corrupted, distribute mistakes naturally.
+
+4. **Do not:**
+   - add or remove whole words,
+   - change grammar or syntax,
+   - paraphrase or simplify the text.
+
+5. The result must remain readable and human-like.
+
+---
+
+### Output format
+Return **only the corrupted passage text** — nothing else.  
+No explanations, no JSON, no quotes.
+
+---
+
+### Example 1
+
+**Input:**
+```json
+{
+  "passage": "The scientists published their findings in the journal Nature.",
+  "num_errors": 2,
+  "error_types": ["spelling"]
+}
+````
+
+**Output:**
+The scintists publised their findings in the journal Nature.
+
+---
+
+### Example 2
+
+**Input:**
+
+```json
+{
+  "passage": "I love Paris and London.",
+  "num_errors": 2,
+  "error_types": ["case", "punctuation"]
+}
+```
+
+**Output:**
+i love Paris and london
+
+---
+
+Now generate the corrupted version for the following input:
+
+```json
+{
+  "passage": "{passage}",
+  "num_errors": {num_errors},
+  "error_types": {error_types}
+}
+```
+
+**Output:**
