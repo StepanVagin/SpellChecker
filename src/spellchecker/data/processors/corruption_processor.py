@@ -1,6 +1,7 @@
-import re
 import json
 import random
+import re
+import string
 import typing as tp
 from pathlib import Path
 
@@ -24,6 +25,8 @@ class Corruptor(LLMProcessor):
         self.corruption_mode: tp.Literal["llm", "heuristic"] = kwargs.get(
             "corruption_mode", "heuristic"
         )
+        self.punctuations: tp.List[str] = list(",.;:!?")
+        self.letters: tp.List[str] = string.ascii_letters
 
     def process_row(
         self,
