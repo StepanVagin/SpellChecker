@@ -1,4 +1,4 @@
-,doc_id,paragraph_id,source_sentence,target_sentence,error_types,num_errors,source_file,has_sec,mec_only
+,doc_id,paragraph_id,source_text,target_text,error_types,num_errors,source_file,has_sec,mec_only
 819,2,0,"In modern digital world, electronic products are widely used in daily lives such as Smart phones, computers and etc.","In the modern digital world, electronic products are widely used in daily life such as smart phones, computers and etc.","['ArtOrDet', 'Nn', 'Mec']",3,official.sgml,True,False
 820,2,0,"In work places, electronic devices such as computers are also inevitable to use to increase the productivity of the corporation.","In ce places, electronic devices, such as computers, are also inevitable to increase the productivity of the corporation.","['ArtOrDet', 'Mec', 'Mec', 'Mec', 'Rloc-']",5,official.sgml,True,False
 823,2,0,Surveillance technology such as RFID (radio-frequency identification) is one type of examples that has currently been implemented.,"Surveillance technology, such as RFID (radio-frequency identification), is one  example that  implemented.","['Mec', 'Mec', 'Rloc-', 'Nn', 'Vt', 'WOadv']",6,official.sgml,True,False
