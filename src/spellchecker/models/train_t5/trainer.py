@@ -44,9 +44,10 @@ class T5Seq2SeqTrainer:
             weight_decay=self.config.weight_decay,
             predict_with_generate=self.config.predict_with_generate,
             fp16=self.config.fp16,
+            logging_dir=f"{self.config.output_dir}/logs",
             logging_steps=self.config.logging_steps,
-            save_steps=self.config.save_steps,
             eval_steps=self.config.eval_steps,
+            save_steps=self.config.save_steps,
             save_total_limit=self.config.save_total_limit,
         )
 
