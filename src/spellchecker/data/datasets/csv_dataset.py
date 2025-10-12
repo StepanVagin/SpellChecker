@@ -2,9 +2,10 @@ import os
 import typing as tp
 
 import pandas as pd
-from datasets import Dataset, DatasetDict
 from sklearn.model_selection import train_test_split
 from transformers import PreTrainedTokenizer
+
+from datasets import Dataset, DatasetDict
 
 
 class CSVDataset:
@@ -146,3 +147,21 @@ class CSVDataset:
         """
         print("[INFO] Sample data:")
         print(self.full_df.sample(n))
+
+
+if __name__ == "__main__":
+    from transformers import T5Tokenizer
+
+    tokenizer = T5Tokenizer.from_pretrained("t5-small")
+
+    dataset = CSVDataset(
+        csv_folder="../data/training",
+        input_column="source_text",
+        target_column="target_text",
+    )
+
+    dataset.save_to_csv()
+
+    hf_dataset = dataset.to_hf_dataset(tokenizer=tokenizer)
+
+    print(hf_dataset)

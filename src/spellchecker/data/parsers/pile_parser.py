@@ -3,9 +3,10 @@ import typing as tp
 
 import jsonlines
 import pandas as pd
-from datasets import load_dataset
 from nltk.tokenize import sent_tokenize
 from tqdm import tqdm
+
+from datasets import load_dataset
 
 
 class PileCorpusParser:
