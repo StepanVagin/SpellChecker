@@ -8,25 +8,52 @@ from spellchecker.models.train_t5.args import Seq2SeqTrainingConfig
 from spellchecker.models.train_t5.trainer import T5Seq2SeqTrainer
 
 
-
 def parse_args() -> tuple[str, Seq2SeqTrainingConfig]:
-    parser = argparse.ArgumentParser(description="")
+    parser = argparse.ArgumentParser(
+        description="Train a T5 seq2seq model on CSV datasets."
+    )
 
-    parser.add_argument("--csv_folder", type=str, default="./data/csvs", help="Path to folder containing CSV files.")
-    parser.add_argument("--model_name", type=str, default="t5-small", help="Model name.")
-    parser.add_argument("--output_dir", type=str, default="./results", help="Directory to save model checkpoints.")
+    # CSV folder
+    parser.add_argument(
+        "--csv_folder",
+        type=str,
+        default="./data/csvs",
+        help="Path to folder containing CSV files.",
+    )
+
+    # Main model params
+    parser.add_argument(
+        "--model_name", type=str, default="t5-small", help="Model name."
+    )
+    parser.add_argument(
+        "--output_dir",
+        type=str,
+        default="./results",
+        help="Directory to save model checkpoints.",
+    )
     parser.add_argument("--num_train_epochs", type=int, default=3)
-    parser.add_argument("--train_batch_size", type=int, default=8)
-    parser.add_argument("--eval_batch_size", type=int, default=8)
-    parser.add_argument("--learning_rate", type=float, default=3e-4)
+    parser.add_argument("--per_device_train_batch_size", type=int, default=8)
+    parser.add_argument("--per_device_eval_batch_size", type=int, default=8)
+    parser.add_argument("--learning_rate", type=float, default=5e-6)
     parser.add_argument("--weight_decay", type=float, default=0.01)
-    parser.add_argument("--fp16", action="store_true")
-    parser.add_argument("--logging_steps", type=int, default=500)
-    parser.add_argument("--save_strategy", type=str, default="steps")
-    parser.add_argument("--evaluation_strategy", type=str, default="steps")
-    parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
-    parser.add_argument("--save_total_limit", type=int, default=3)
     parser.add_argument("--predict_with_generate", action="store_true")
+    parser.add_argument("--fp16", action="store_true")
+
+    # Logging & checkpoints
+    parser.add_argument("--logging_steps", type=int, default=100)
+    parser.add_argument("--save_steps", type=int, default=500)
+    parser.add_argument("--eval_steps", type=int, default=500)
+    parser.add_argument("--save_total_limit", type=int, default=2)
+    parser.add_argument("--load_best_model_at_end", action="store_true")
+    parser.add_argument("--metric_for_best_model", type=str, default="loss")
+    parser.add_argument("--greater_is_better", action="store_true")
+
+    # Misc
+    parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
+    parser.add_argument("--warmup_steps", type=int, default=0)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--remove_unused_columns", action="store_true")
+    parser.add_argument("--report_to", type=str, default="all")
 
     args = parser.parse_args()
 
