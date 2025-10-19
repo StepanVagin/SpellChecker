@@ -75,25 +75,33 @@ def parse_args() -> tuple[str, Seq2SeqTrainingConfig]:
 def main():
     csv_folder, config = parse_args()
 
+    print("[INFO] CSV folder:", csv_folder)
+    print("[INFO] Training config:")
+    for f in fields(config):
+        print(f"  {f.name}: {getattr(config, f.name)}")
+    print("[INFO] Training will use TensorBoard logging at:", config.output_dir)
+
     # Prepare dataset
+    print("[INFO] Preparing dataset...")
     dataset_obj = CSVDataset(
         csv_folder=csv_folder, input_column="source_text", target_column="target_text"
     )
     dataset_obj.save_to_csv()
 
-    # Load tokenized Hugging Face DatasetDict
+    print("[INFO] Tokenizing dataset...")
     tokenizer = T5Tokenizer.from_pretrained(config.model_name)
     hf_dataset = dataset_obj.to_hf_dataset(tokenizer=tokenizer)
 
-    # Configure and initialize trainer
+    print("[INFO] Initializing trainer...")
     trainer = T5Seq2SeqTrainer(config)
     trainer.setup(hf_dataset)
 
-    # Start training
+    print("[INFO] Starting training...")
     trainer.train()
+    print("[INFO] Training finished! Checkpoints and logs saved in:", config.output_dir)
 
 
 if __name__ == "__main__":
     main()
 
-# python -m spellchecker.models.train_t5.train --csv_folder ../data/training --model_name /root/t5-small --num_train_epochs 5 --train_batch_size 16 --fp16
+# python -m spellchecker.models.train_t5.train --csv_folder ../data/training --model_name /root/t5-small --num_train_epochs 3 --train_batch_size 16 --per_device_eval_batch_size 16 --fp16 --learning_rate 3e-4 --weight_decay 1e-3 --logging_steps 50 --save_steps 500 --eval_steps 50 --seed 42
