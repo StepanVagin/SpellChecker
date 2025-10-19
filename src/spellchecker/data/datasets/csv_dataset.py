@@ -2,9 +2,9 @@ import os
 import typing as tp
 
 import pandas as pd
+from datasets import Dataset, DatasetDict
 from sklearn.model_selection import train_test_split
 from transformers import PreTrainedTokenizer
-from datasets import Dataset, DatasetDict
 
 
 class CSVDataset:
@@ -85,7 +85,7 @@ class CSVDataset:
         concatenate them into a single dataset, and add a unique 'id' column.
         """
         all_dfs = []
-        for filename in os.listdir(self.csv_folder):
+        for filename in sorted(os.listdir(self.csv_folder)):
             if filename.endswith(".csv"):
                 path = os.path.join(self.csv_folder, filename)
                 df = pd.read_csv(path)

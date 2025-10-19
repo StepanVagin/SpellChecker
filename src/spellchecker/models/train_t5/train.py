@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 
 from transformers import T5Tokenizer
 
@@ -7,10 +8,8 @@ from spellchecker.models.train_t5.args import Seq2SeqTrainingConfig
 from spellchecker.models.train_t5.trainer import T5Seq2SeqTrainer
 
 
-def parse_args() -> Seq2SeqTrainingConfig:
-    parser = argparse.ArgumentParser(
-        description="Train a T5 seq2seq model on CSV datasets."
-    )
+def parse_args() -> tuple[str, Seq2SeqTrainingConfig]:
+    parser = argparse.ArgumentParser()
 
     parser.add_argument(
         "--csv_folder",
@@ -48,9 +47,15 @@ def parse_args() -> Seq2SeqTrainingConfig:
 
     args = parser.parse_args()
 
+    csv_folder = Path(args.csv_folder)
+    if not csv_folder.exists():
+        raise FileNotFoundError(f"CSV folder not found: {csv_folder}")
+
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
     config = Seq2SeqTrainingConfig(
-        model_name=args.model_name,
-        output_dir=args.output_dir,
+        output_dir=str(output_dir),
         num_train_epochs=args.num_train_epochs,
         per_device_train_batch_size=args.train_batch_size,
         per_device_eval_batch_size=args.eval_batch_size,
@@ -59,7 +64,7 @@ def parse_args() -> Seq2SeqTrainingConfig:
         fp16=args.fp16,
     )
 
-    return args.csv_folder, config
+    return str(csv_folder), config
 
 
 def main():
@@ -86,4 +91,4 @@ def main():
 if __name__ == "__main__":
     main()
 
-# python -m spellchecker.models.train_t5.train --csv_folder ../data/training --model_name t5-small --num_train_epochs 5 --train_batch_size 16 --fp16
+# python -m spellchecker.models.train_t5.train --csv_folder ../data/training --model_name /root/t5-small --num_train_epochs 5 --train_batch_size 16 --fp16
