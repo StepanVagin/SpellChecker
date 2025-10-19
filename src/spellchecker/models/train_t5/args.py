@@ -9,6 +9,7 @@ class Seq2SeqTrainingConfig:
     num_train_epochs: int = 3
     per_device_train_batch_size: int = 8
     per_device_eval_batch_size: int = 8
+    max_length: int = 512
     learning_rate: float = 5e-6
     weight_decay: float = 0.01
     predict_with_generate: bool = True
@@ -18,6 +19,7 @@ class Seq2SeqTrainingConfig:
     logging_steps: int = 100
     save_steps: int = 500
     eval_steps: int = 500
+    evaluation_strategy: str = "steps"
     save_total_limit: int = 2
     load_best_model_at_end: bool = True
     metric_for_best_model: str = "loss"

@@ -2,6 +2,8 @@ import argparse
 import typing as tp
 
 import pandas as pd
+import torch
+from tqdm import tqdm
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 
 
@@ -9,8 +11,10 @@ def load_model_and_tokenizer(model_dir: str):
     """
     Load trained model and tokenizer from directory.
     """
+    print(f"[INFO] Loading model and tokenizer from: {model_dir}")
     tokenizer = T5Tokenizer.from_pretrained(model_dir)
     model = T5ForConditionalGeneration.from_pretrained(model_dir)
+    print(f"[INFO] Model and tokenizer successfully loaded.")
     return model, tokenizer
 
 
@@ -23,20 +27,28 @@ def predict(
     device: str = "cpu",
 ):
     """
-    Generate predictions for a list of texts.
+    Generate predictions for a list of texts with progress bar.
     """
     model.to(device)
+    model.eval()
     predictions = []
 
-    for i in range(0, len(texts), batch_size):
-        batch_texts = texts[i : i + batch_size]
-        inputs = tokenizer(
-            batch_texts, return_tensors="pt", padding=True, truncation=True
-        ).to(device)
-        outputs = model.generate(**inputs, max_length=max_length)
-        batch_preds = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-        predictions.extend(batch_preds)
+    print(
+        f"[INFO] Starting inference on {len(texts)} samples "
+        f"(batch_size={batch_size}, device={device})"
+    )
 
+    with torch.no_grad():
+        for i in tqdm(range(0, len(texts), batch_size), desc="[INFO] Inference progress"):
+            batch_texts = texts[i : i + batch_size]
+            inputs = tokenizer(
+                batch_texts, return_tensors="pt", padding=True, truncation=True
+            ).to(device)
+            outputs = model.generate(**inputs, max_length=max_length)
+            batch_preds = tokenizer.batch_decode(outputs, skip_special_tokens=True)
+            predictions.extend(batch_preds)
+
+    print(f"[INFO] Inference completed.")
     return predictions
 
 
@@ -80,12 +92,17 @@ def main():
 
     args = parser.parse_args()
 
+    # Load model & tokenizer
     model, tokenizer = load_model_and_tokenizer(args.model_dir)
 
+    # Load data
+    print(f"[INFO] Loading input CSV: {args.input_csv}")
     df = pd.read_csv(args.input_csv)
     if args.text_column not in df.columns:
         raise ValueError(f"Column '{args.text_column}' not found in CSV.")
+    print(f"[INFO] Loaded {len(df)} rows from {args.input_csv}")
 
+    # Run predictions
     texts = df[args.text_column].tolist()
     preds = predict(
         model,
@@ -96,9 +113,10 @@ def main():
         device=args.device,
     )
 
+    # Save results
     df["prediction"] = preds
     df.to_csv(args.output_csv, index=False)
-    print(f"Predictions saved to {args.output_csv}")
+    print(f"[INFO] Predictions saved to: {args.output_csv}")
 
 
 if __name__ == "__main__":

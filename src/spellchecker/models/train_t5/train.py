@@ -104,4 +104,4 @@ def main():
 if __name__ == "__main__":
     main()
 
-# python -m spellchecker.models.train_t5.train --csv_folder ../data/training --model_name /root/t5-small --num_train_epochs 3 --train_batch_size 16 --per_device_eval_batch_size 16 --fp16 --learning_rate 3e-4 --weight_decay 1e-3 --logging_steps 50 --save_steps 500 --eval_steps 50 --seed 42
+# python -m spellchecker.models.train_t5.train --csv_folder ../data/training --model_name /root/t5-small --num_train_epochs 3 --per_device_train_batch_size 16 --per_device_eval_batch_size 16 --fp16 --learning_rate 3e-4 --weight_decay 1e-3 --logging_steps 50 --save_steps 500 --eval_steps 50 --seed 42
