@@ -24,12 +24,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from spellchecker.data.parsers.unsupervised_parser import (
-    WikipediaParser,
-    CCNewsParser,
-    BookCorpusParser,
-    UniversalTextCleaner,
-    process_unsupervised_corpus,
-)
+    BookCorpusParser, CCNewsParser, UniversalTextCleaner, WikipediaParser,
+    process_unsupervised_corpus)
 
 
 def setup_argparse() -> argparse.ArgumentParser:

@@ -1,6 +1,7 @@
 import argparse
 from dataclasses import fields
 from pathlib import Path
+
 from transformers import T5Tokenizer
 
 from spellchecker.data.datasets.csv_dataset import CSVDataset
