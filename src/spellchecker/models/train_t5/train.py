@@ -1,6 +1,6 @@
 import argparse
+from dataclasses import fields
 from pathlib import Path
-
 from transformers import T5Tokenizer
 
 from spellchecker.data.datasets.csv_dataset import CSVDataset
@@ -8,61 +8,38 @@ from spellchecker.models.train_t5.args import Seq2SeqTrainingConfig
 from spellchecker.models.train_t5.trainer import T5Seq2SeqTrainer
 
 
-def parse_args() -> tuple[str, Seq2SeqTrainingConfig]:
-    parser = argparse.ArgumentParser()
 
-    parser.add_argument(
-        "--csv_folder",
-        type=str,
-        default="./data/csvs",
-        help="Path to folder containing CSV files.",
-    )
-    parser.add_argument(
-        "--model_name", type=str, default="t5-small", help="Hugging Face model name."
-    )
-    parser.add_argument(
-        "--output_dir",
-        type=str,
-        default="./results",
-        help="Directory to save model checkpoints.",
-    )
-    parser.add_argument(
-        "--num_train_epochs", type=int, default=3, help="Number of training epochs."
-    )
-    parser.add_argument(
-        "--train_batch_size", type=int, default=8, help="Per-device train batch size."
-    )
-    parser.add_argument(
-        "--eval_batch_size", type=int, default=8, help="Per-device eval batch size."
-    )
-    parser.add_argument(
-        "--learning_rate", type=float, default=3e-4, help="Learning rate."
-    )
-    parser.add_argument(
-        "--weight_decay", type=float, default=0.01, help="Weight decay."
-    )
-    parser.add_argument(
-        "--fp16", action="store_true", help="Use mixed precision (fp16) training."
-    )
+def parse_args() -> tuple[str, Seq2SeqTrainingConfig]:
+    parser = argparse.ArgumentParser(description="")
+
+    parser.add_argument("--csv_folder", type=str, default="./data/csvs", help="Path to folder containing CSV files.")
+    parser.add_argument("--model_name", type=str, default="t5-small", help="Model name.")
+    parser.add_argument("--output_dir", type=str, default="./results", help="Directory to save model checkpoints.")
+    parser.add_argument("--num_train_epochs", type=int, default=3)
+    parser.add_argument("--train_batch_size", type=int, default=8)
+    parser.add_argument("--eval_batch_size", type=int, default=8)
+    parser.add_argument("--learning_rate", type=float, default=3e-4)
+    parser.add_argument("--weight_decay", type=float, default=0.01)
+    parser.add_argument("--fp16", action="store_true")
+    parser.add_argument("--logging_steps", type=int, default=500)
+    parser.add_argument("--save_strategy", type=str, default="steps")
+    parser.add_argument("--evaluation_strategy", type=str, default="steps")
+    parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
+    parser.add_argument("--save_total_limit", type=int, default=3)
+    parser.add_argument("--predict_with_generate", action="store_true")
 
     args = parser.parse_args()
 
     csv_folder = Path(args.csv_folder)
     if not csv_folder.exists():
         raise FileNotFoundError(f"CSV folder not found: {csv_folder}")
-
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    config = Seq2SeqTrainingConfig(
-        output_dir=str(output_dir),
-        num_train_epochs=args.num_train_epochs,
-        per_device_train_batch_size=args.train_batch_size,
-        per_device_eval_batch_size=args.eval_batch_size,
-        learning_rate=args.learning_rate,
-        weight_decay=args.weight_decay,
-        fp16=args.fp16,
-    )
+    dataclass_fields = {f.name for f in fields(Seq2SeqTrainingConfig)}
+    config_kwargs = {k: v for k, v in vars(args).items() if k in dataclass_fields}
+
+    config = Seq2SeqTrainingConfig(**config_kwargs)
 
     return str(csv_folder), config
 
