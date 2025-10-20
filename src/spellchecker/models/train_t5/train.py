@@ -39,6 +39,7 @@ def parse_args() -> tuple[str, Seq2SeqTrainingConfig]:
     parser.add_argument("--weight_decay", type=float, default=0.01)
     parser.add_argument("--predict_with_generate", action="store_true")
     parser.add_argument("--fp16", action="store_true")
+    parser.add_argument("--evaluation_strategy", type=str, default="steps")
 
     # Logging & checkpoints
     parser.add_argument("--logging_steps", type=int, default=100)
@@ -104,4 +105,4 @@ def main():
 if __name__ == "__main__":
     main()
 
-# python -m spellchecker.models.train_t5.train --csv_folder ../data/training --model_name /root/t5-small --num_train_epochs 3 --per_device_train_batch_size 16 --per_device_eval_batch_size 16 --fp16 --learning_rate 3e-4 --weight_decay 1e-3 --logging_steps 50 --save_steps 500 --eval_steps 50 --seed 42
+# python -m spellchecker.models.train_t5.train --csv_folder ../data/training --model_name /root/t5-small --num_train_epochs 3 --per_device_train_batch_size 16 --per_device_eval_batch_size 16 --fp16 --learning_rate 3e-4 --weight_decay 1e-3 --logging_steps 50 --save_steps 500 --eval_steps 50 --seed 42 --evaluation_strategy steps

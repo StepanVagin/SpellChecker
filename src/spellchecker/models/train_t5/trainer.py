@@ -1,11 +1,16 @@
 import typing as tp
 
 from datasets import DatasetDict
-from transformers import (DataCollatorForSeq2Seq, Seq2SeqTrainer,
-                          Seq2SeqTrainingArguments, T5ForConditionalGeneration,
-                          T5Tokenizer)
+from transformers import (
+    DataCollatorForSeq2Seq,
+    Seq2SeqTrainer,
+    Seq2SeqTrainingArguments,
+    T5ForConditionalGeneration,
+    T5Tokenizer,
+)
 
 from spellchecker.models.train_t5.args import Seq2SeqTrainingConfig
+from spellchecker.models.train_t5.utils import MetricsLoggerCallback
 
 
 class T5Seq2SeqTrainer:
@@ -44,6 +49,7 @@ class T5Seq2SeqTrainer:
             logging_steps=self.config.logging_steps,
             eval_steps=self.config.eval_steps,
             save_steps=self.config.save_steps,
+            eval_strategy=self.config.evaluation_strategy,
             save_total_limit=self.config.save_total_limit,
         )
 
@@ -55,6 +61,9 @@ class T5Seq2SeqTrainer:
             tokenizer=self.tokenizer,
             data_collator=self.data_collator,
         )
+
+        logger = MetricsLoggerCallback()
+        self.trainer.add_callback(logger)
 
     def train(self):
         """
