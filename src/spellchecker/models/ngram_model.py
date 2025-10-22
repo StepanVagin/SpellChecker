@@ -179,29 +179,37 @@ class EditDistance:
         return previous_row[-1]
     
     @staticmethod
+    def generate_edits(word: str) -> Set[str]:
+        """Generate all possible single-edit variations of a word"""
+        letters = 'abcdefghijklmnopqrstuvwxyz'
+        splits = [(word[:i], word[i:]) for i in range(len(word) + 1)]
+        deletes = [L + R[1:] for L, R in splits if R]
+        transposes = [L + R[1] + R[0] + R[2:] for L, R in splits if len(R) > 1]
+        replaces = [L + c + R[1:] for L, R in splits if R for c in letters]
+        inserts = [L + c + R for L, R in splits for c in letters]
+        return set(deletes + transposes + replaces + inserts)
+    
+    @staticmethod
     def generate_candidates(word: str, vocabulary: Set[str], max_distance: int = 2) -> List[Tuple[str, int]]:
-        """Generate candidate corrections for a word using optimized approach"""
+        """Generate candidate corrections for a word using fast edits-based approach"""
         candidates = []
-        word_len = len(word)
         
-        # Optimization: Only check words with similar length
-        # For edit distance <= max_distance, length difference should be <= max_distance
-        for vocab_word in vocabulary:
-            if abs(len(vocab_word) - word_len) > max_distance:
-                continue
-            
-            # Quick check: if first character is very different, skip (for performance)
-            # This is an optimization that may miss some candidates but speeds up significantly
-            if max_distance == 1 and word and vocab_word:
-                if word[0] != vocab_word[0] and word[0:2] != vocab_word[0:2]:
-                    # For distance 1, at least the beginning should be similar
-                    pass  # Still check it
-            
-            distance = EditDistance.levenshtein_distance(word, vocab_word)
-            if distance <= max_distance:
-                candidates.append((vocab_word, distance))
+        # Distance 1: direct edits
+        edits1 = EditDistance.generate_edits(word)
+        for candidate in edits1:
+            if candidate in vocabulary:
+                candidates.append((candidate, 1))
         
-        # Sort by edit distance
+        # Distance 2: edits of edits (if needed)
+        if max_distance >= 2 and len(candidates) < 10:
+            edits2 = set()
+            for edit1 in edits1:
+                edits2.update(EditDistance.generate_edits(edit1))
+            for candidate in edits2:
+                if candidate in vocabulary and candidate not in [c[0] for c in candidates]:
+                    candidates.append((candidate, 2))
+        
+        # Sort by edit distance (distance 1 first, then distance 2)
         candidates.sort(key=lambda x: x[1])
         return candidates[:50]  # Limit to top 50 candidates for efficiency
 
@@ -222,7 +230,7 @@ class SpellingChecker:
         """Check if a word needs correction and suggest the best correction"""
         word_lower = word.lower()
         
-        # If word is in vocabulary, it's likely correct
+        # If word is in vocabulary, it's likely correct - keep it
         if word_lower in self.vocabulary:
             prob = self.ngram_models[0].get_word_probability(word_lower, context)
             return CorrectionResult(
@@ -237,7 +245,7 @@ class SpellingChecker:
         candidates = EditDistance.generate_candidates(word_lower, self.vocabulary, max_distance=2)
         
         if not candidates:
-            # No candidates found
+            # No candidates found - keep original
             return CorrectionResult(
                 original_word=word,
                 corrected_word=word,
@@ -251,52 +259,103 @@ class SpellingChecker:
         best_score = float('-inf')
         
         for candidate_word, edit_dist in candidates:
-            # Calculate probability using the best available model
-            prob = 0.0
+            # Calculate probability using all available models (average)
+            probs = []
             for model in self.ngram_models:
                 model_prob = model.get_word_probability(candidate_word, context)
-                prob = max(prob, model_prob)
+                if model_prob > 0:
+                    probs.append(model_prob)
             
-            # Combine probability with edit distance penalty
-            score = prob - (edit_dist * 0.1)  # Penalty for edit distance
+            if not probs:
+                continue
+                
+            prob = max(probs)  # Use best probability from any model
+            
+            # Prefer edit distance 1 over 2
+            # Give strong preference to closer matches
+            edit_penalty = edit_dist * 0.01 if edit_dist == 1 else edit_dist * 0.05
+            score = prob - edit_penalty
             
             if score > best_score:
                 best_score = score
                 best_candidate = (candidate_word, edit_dist, prob)
         
+        # Only accept correction if it's significantly better and above threshold
         if best_candidate and best_candidate[2] > self.probability_threshold:
-            return CorrectionResult(
-                original_word=word,
-                corrected_word=best_candidate[0],
-                probability=best_candidate[2],
-                confidence=min(1.0, best_candidate[2] * 10),  # Scale confidence
-                edit_distance=best_candidate[1]
-            )
-        else:
-            # Keep original word if no good candidate found
-            return CorrectionResult(
-                original_word=word,
-                corrected_word=word,
-                probability=0.0,
-                confidence=0.0,
-                edit_distance=0
-            )
+            # Additional check: prefer edit distance 1 corrections
+            if best_candidate[1] == 1 or best_candidate[2] > self.probability_threshold * 2:
+                return CorrectionResult(
+                    original_word=word,
+                    corrected_word=best_candidate[0],
+                    probability=best_candidate[2],
+                    confidence=min(1.0, best_candidate[2] * 10),
+                    edit_distance=best_candidate[1]
+                )
+        
+        # Keep original word if no confident candidate found
+        return CorrectionResult(
+            original_word=word,
+            corrected_word=word,
+            probability=0.0,
+            confidence=0.0,
+            edit_distance=0
+        )
     
     def correct_text(self, text: str) -> Tuple[str, List[CorrectionResult]]:
-        """Correct spelling errors in a text"""
-        words = text.split()
-        corrected_words = []
+        """Correct spelling errors in a text, preserving punctuation"""
+        # Split into tokens, preserving spaces
+        tokens = text.split()
+        corrected_tokens = []
         corrections = []
         
-        for i, word in enumerate(words):
-            # Get context (previous words)
-            context = [w.lower() for w in words[max(0, i-3):i]]
+        for i, token in enumerate(tokens):
+            # Separate word from surrounding punctuation
+            # Match leading punctuation, word, trailing punctuation
+            import re
+            match = re.match(r'^([^a-zA-Z0-9]*)([a-zA-Z0-9]+)([^a-zA-Z0-9]*)$', token)
             
-            result = self.check_word(word, context)
-            corrected_words.append(result.corrected_word)
-            corrections.append(result)
+            if match:
+                prefix, word, suffix = match.groups()
+                
+                # Get context (previous actual words, not punctuation)
+                context_words = []
+                for j in range(max(0, i-3), i):
+                    prev_match = re.match(r'^[^a-zA-Z0-9]*([a-zA-Z0-9]+)[^a-zA-Z0-9]*$', tokens[j])
+                    if prev_match:
+                        context_words.append(prev_match.group(1).lower())
+                
+                # Check and correct the word
+                result = self.check_word(word, context_words)
+                
+                # Preserve original capitalization pattern if word wasn't corrected
+                if result.corrected_word != result.original_word:
+                    # Apply original capitalization pattern to correction
+                    if word.isupper():
+                        corrected_word = result.corrected_word.upper()
+                    elif word[0].isupper():
+                        corrected_word = result.corrected_word.capitalize()
+                    else:
+                        corrected_word = result.corrected_word
+                else:
+                    corrected_word = word  # Keep original if no correction
+                
+                # Reconstruct token with punctuation
+                corrected_token = prefix + corrected_word + suffix
+                corrected_tokens.append(corrected_token)
+                corrections.append(result)
+            else:
+                # Token is pure punctuation or doesn't match pattern - keep as is
+                corrected_tokens.append(token)
+                # Create a no-change result
+                corrections.append(CorrectionResult(
+                    original_word=token,
+                    corrected_word=token,
+                    probability=1.0,
+                    confidence=1.0,
+                    edit_distance=0
+                ))
         
-        corrected_text = ' '.join(corrected_words)
+        corrected_text = ' '.join(corrected_tokens)
         return corrected_text, corrections
 
 
