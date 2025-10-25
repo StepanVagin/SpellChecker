@@ -1,0 +1,39 @@
+paths:
+  csv_folder: ../data/training
+  test_csv: ./datasets/splits/test.csv
+  model_name: /root/t5-small
+  output_dir: ./results
+  predictions_csv: ./results/predictions.csv
+
+train:
+  num_train_epochs: 4
+  per_device_train_batch_size: 32
+  per_device_eval_batch_size: 32
+  fp16: true
+  learning_rate: 4e-4
+  weight_decay: 1e-3
+  max_length: 512
+  logging_steps: 50
+  save_steps: 500
+  eval_steps: 50
+  save_total_limit: 2
+  seed: 42
+  evaluation_strategy: steps
+  gradient_accumulation_steps: 64
+  max_grad_norm: 1
+  warmup_ratio: 0.1
+  predict_with_generate: false
+  remove_unused_columns: true
+  report_to: all
+  metric_for_best_model: loss
+  greater_is_better: false
+  load_best_model_at_end: true
+
+inference:
+  batch_size: 32
+  max_length: 512
+  device: cuda
+  text_column: source_text
+
+metrics:
+  enabled: true
