@@ -1,7 +1,8 @@
 import argparse
-import pandas as pd
-import typing as tp
 import os
+import typing as tp
+
+import pandas as pd
 
 
 def compute_token_level_sets(

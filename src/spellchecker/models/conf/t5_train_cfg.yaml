@@ -1,6 +1,6 @@
 paths:
   csv_folder: ../data/training
-  test_csv: ../data/test.csv
+  test_csv: ./datasets/splits/test.csv
   model_name: /root/t5-small
   output_dir: ./results
   predictions_csv: ./results/predictions.csv
