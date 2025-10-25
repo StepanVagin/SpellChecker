@@ -37,6 +37,8 @@ def parse_args() -> tuple[str, Seq2SeqTrainingConfig]:
     parser.add_argument("--per_device_eval_batch_size", type=int, default=8)
     parser.add_argument("--learning_rate", type=float, default=5e-6)
     parser.add_argument("--weight_decay", type=float, default=0.01)
+    parser.add_argument("--max_grad_norm", type=int, default=1)
+    parser.add_argument("--warmup_ratio", type=float, default=0.1)
     parser.add_argument("--predict_with_generate", action="store_true")
     parser.add_argument("--fp16", action="store_true")
     parser.add_argument("--evaluation_strategy", type=str, default="steps")
@@ -52,7 +54,6 @@ def parse_args() -> tuple[str, Seq2SeqTrainingConfig]:
 
     # Misc
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
-    parser.add_argument("--warmup_steps", type=int, default=0)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--remove_unused_columns", action="store_true")
     parser.add_argument("--report_to", type=str, default="all")
@@ -91,7 +92,11 @@ def main():
 
     print("[INFO] Tokenizing dataset...")
     tokenizer = T5Tokenizer.from_pretrained(config.model_name)
-    hf_dataset = dataset_obj.to_hf_dataset(tokenizer=tokenizer)
+    hf_dataset = dataset_obj.to_hf_dataset(
+        tokenizer=tokenizer,
+        max_input_length=config.max_length,
+        max_target_length=config.max_length,
+    )
 
     print("[INFO] Initializing trainer...")
     trainer = T5Seq2SeqTrainer(config)

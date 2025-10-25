@@ -1,7 +1,7 @@
 import argparse
-import typing as tp
-
 import pandas as pd
+import typing as tp
+import os
 
 
 def compute_token_level_sets(
@@ -82,19 +82,36 @@ def main():
         required=True,
         help="CSV file with source_text, target_text, and prediction columns.",
     )
+    parser.add_argument(
+        "--output_csv",
+        type=str,
+        required=False,
+        default="metrics.csv",
+        help="Path to save computed metrics.",
+    )
+
     args = parser.parse_args()
 
+    # Load data
     df = pd.read_csv(args.input_csv)
     required_cols = {"source_text", "target_text", "prediction"}
     if not required_cols.issubset(df.columns):
         raise ValueError(f"CSV must contain columns: {required_cols}")
 
+    # Compute metrics
     results = evaluate_metrics(df)
 
+    # Print to console
     print("\n===== Evaluation Results =====")
     for k, v in results.items():
         print(f"{k}: {v:.4f}")
     print("================================\n")
+
+    # Save to CSV
+    os.makedirs(os.path.dirname(args.output_csv) or ".", exist_ok=True)
+    results_df = pd.DataFrame([results])
+    results_df.to_csv(args.output_csv, index=False)
+    print(f"[INFO] Metrics saved to: {args.output_csv}")
 
 
 if __name__ == "__main__":

@@ -14,6 +14,8 @@ class Seq2SeqTrainingConfig:
     weight_decay: float = 0.01
     predict_with_generate: bool = True
     fp16: bool = True
+    max_grad_norm: int = 1
+    warmup_ratio: float = 0.1
 
     # Logging & Checkpoints
     logging_steps: int = 100
@@ -26,7 +28,6 @@ class Seq2SeqTrainingConfig:
     greater_is_better: bool = False
 
     gradient_accumulation_steps: int = 1
-    warmup_steps: int = 0
     seed: int = 42
     remove_unused_columns: bool = True
     report_to: str = "all"
