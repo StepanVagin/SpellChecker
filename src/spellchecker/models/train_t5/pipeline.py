@@ -7,12 +7,20 @@ import hydra
 from omegaconf import DictConfig
 
 
+def get_latest_checkpoint(run_dir: Path) -> Path:
+    checkpoints = list(run_dir.glob("checkpoint-*"))
+    if not checkpoints:
+        raise FileNotFoundError(f"No checkpoints found in {run_dir}")
+    # sort by numeric suffix
+    latest_ckpt = max(checkpoints, key=lambda x: int(x.name.split("-")[-1]))
+    return latest_ckpt
+
 @hydra.main(config_path="../conf", config_name="t5_train_cfg", version_base=None)
 def main(cfg: DictConfig):
     # Create unique directory for an experiment
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     unique_id = str(uuid.uuid4())[:8]
-    run_dir = Path(cfg.output_dir) / f"{timestamp}_{unique_id}"
+    run_dir = Path(cfg.paths.output_dir) / f"{timestamp}_{unique_id}"
     run_dir.mkdir(parents=True, exist_ok=True)
     print(f"[Hydra Pipeline] Run directory: {run_dir}")
 
@@ -21,8 +29,8 @@ def main(cfg: DictConfig):
         "python",
         "-m",
         "spellchecker.models.train_t5.train",
-        f"--csv_folder={cfg.csv_folder}",
-        f"--model_name={cfg.model_name}",
+        f"--csv_folder={cfg.paths.csv_folder}",
+        f"--model_name={cfg.paths.model_name}",
         f"--output_dir={run_dir}",
         f"--num_train_epochs={cfg.train.num_train_epochs}",
         f"--per_device_train_batch_size={cfg.train.per_device_train_batch_size}",
@@ -62,8 +70,8 @@ def main(cfg: DictConfig):
         "python",
         "-m",
         "spellchecker.models.train_t5.inference",
-        f"--model_dir={run_dir}",
-        f"--input_csv={cfg.inference.input_csv}",
+        f"--model_dir={get_latest_checkpoint(run_dir)}",
+        f"--input_csv={cfg.paths.test_csv}",
         f"--output_csv={pred_csv}",
         f"--batch_size={cfg.inference.batch_size}",
         f"--max_length={cfg.inference.max_length}",

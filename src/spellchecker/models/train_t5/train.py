@@ -37,6 +37,7 @@ def parse_args() -> tuple[str, Seq2SeqTrainingConfig]:
     parser.add_argument("--per_device_eval_batch_size", type=int, default=8)
     parser.add_argument("--learning_rate", type=float, default=5e-6)
     parser.add_argument("--weight_decay", type=float, default=0.01)
+    parser.add_argument("--max_length", type=int, default=512)
     parser.add_argument("--max_grad_norm", type=int, default=1)
     parser.add_argument("--warmup_ratio", type=float, default=0.1)
     parser.add_argument("--predict_with_generate", action="store_true")
