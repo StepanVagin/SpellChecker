@@ -45,7 +45,7 @@ class T5Seq2SeqTrainer:
             logging_steps=self.config.logging_steps,
             eval_steps=self.config.eval_steps,
             save_steps=self.config.save_steps,
-            eval_strategy=self.config.evaluation_strategy,
+            evaluation_strategy=self.config.evaluation_strategy,
             save_total_limit=self.config.save_total_limit,
         )
 
