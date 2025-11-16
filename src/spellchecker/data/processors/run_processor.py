@@ -4,10 +4,12 @@ from pathlib import Path
 
 from spellchecker.data.processors.corruption_processor import Corruptor
 from spellchecker.data.processors.validation_processor import Validator
+from spellchecker.data.processors.heuristic_processor import HeuristicValidator
 
 PROCESSORS = {
     "validate": Validator,
     "corrupt": Corruptor,
+    "heuristic_validate": HeuristicValidator,
 }
 
 
@@ -37,19 +39,17 @@ def parse_args():
         "--model",
         "-m",
         type=str,
-        default="gemma-3-27b-it/latest",
         help="Model name",
     )
 
     parser.add_argument(
-        "--batch-size", "-b", type=int, default=64, help="Batch size for processing"
+        "--batch-size", "-b", type=int, help="Batch size for processing"
     )
 
     parser.add_argument(
         "--checkpoint-dir",
         "-c",
         type=Path,
-        default=Path("checkpoints"),
         help="Directory for checkpoints",
     )
 
@@ -57,17 +57,39 @@ def parse_args():
         "--temperature",
         "-t",
         type=float,
-        default=0.0,
         help="Temperature for generation",
     )
 
-    parser.add_argument(
-        "--max-tokens", type=int, default=500, help="Max tokens for generation"
-    )
+    parser.add_argument("--max-tokens", type=int, help="Max tokens for generation")
 
     # For corruption processor
+    parser.add_argument("--corruption-mode", type=str, help="Either llm or heuristic")
+
+    # For heuristic processor
     parser.add_argument(
-        "--corruption-mode", type=str, default="llm", help="Either llm or heuristic"
+        "--max-edit-ratio",
+        type=float,
+        help="Maximum allowed edit distance ratio",
+    )
+    parser.add_argument(
+        "--min-word-similarity",
+        type=float,
+        help="Minimum word-level similarity",
+    )
+    parser.add_argument(
+        "--max-word-diff",
+        type=int,
+        help="Maximum difference in word count between source and target",
+    )
+    parser.add_argument(
+        "--allow-case-normalization",
+        type=bool,
+        help="Allow case normalization as valid change",
+    )
+    parser.add_argument(
+        "--invalid-chars-pattern",
+        type=str,
+        help="Regex pattern for invalid characters",
     )
 
     return parser.parse_args()
@@ -89,11 +111,13 @@ def main():
     # Get processor class
     processor_class = PROCESSORS[args.processor]
 
-    # Build processor kwargs
-    processor_kwargs = {
-        "batch_size": args.batch_size,
-        "checkpoint_dir": args.checkpoint_dir,
-    }
+    processor_kwargs = {}
+
+    if args.batch_size is not None:
+        processor_kwargs["batch_size"] = args.batch_size
+
+    if args.checkpoint_dir is not None:
+        processor_kwargs["checkpoint_dir"] = args.checkpoint_dir
 
     if args.prompt:
         processor_kwargs["prompt_path"] = args.prompt
@@ -134,7 +158,7 @@ def main():
         if args.output:
             output_path = args.output
         else:
-            output_path = input_file.parent / f"{input_file.stem}_{args.processor}d.csv"
+            output_path = input_file.parent / f"{input_file.stem}_{args.processor}.csv"
 
         result.to_csv(output_path, index=False)
         print(f"Saved to: {output_path}")
@@ -146,3 +170,5 @@ if __name__ == "__main__":
     main()
 
 # python -m spellchecker.data.processors.run_processor validate path_to_unfiltered_sft_corpus.csv -o path_to_save.csv --model model_name
+# python -m spellchecker.data.processors.run_processor heuristic_validate /Users/chrnegor/Documents/study/MLDL/SpellChecker/temp/train.csv \
+#     -o filtered_train.csv \
