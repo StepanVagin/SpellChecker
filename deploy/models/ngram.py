@@ -46,6 +46,8 @@ class NGramSpellChecker:
         
         self.checker = SpellingChecker(ngram_models, probability_threshold=probability_threshold)
         self.probability_threshold = probability_threshold
+        self.models_loaded = len(ngram_models)  # Store number of models loaded
+        self.vocabulary_size = len(self.checker.vocabulary)  # Store vocabulary size
         
         print(f"[INFO] Successfully loaded {len(ngram_models)} n-gram models")
         print(f"[INFO] Vocabulary size: {len(self.checker.vocabulary)} words")
@@ -65,4 +67,35 @@ class NGramSpellChecker:
             corrected_text, _ = self.checker.correct_text(text)
             corrected_texts.append(corrected_text)
         return corrected_texts
+
+    def predict_with_details(self, text: str) -> tp.Tuple[str, tp.List[tp.Dict[str, tp.Any]]]:
+        """
+        Predict corrected text with detailed correction information.
+        
+        Args:
+            text: Input text to correct
+            
+        Returns:
+            Tuple of (corrected_text, list of correction details)
+            Each correction detail is a dict with:
+            - original: original word
+            - corrected: corrected word
+            - confidence: confidence score
+            - edit_distance: edit distance
+        """
+        corrected_text, corrections = self.checker.correct_text(text)
+        
+        # Convert CorrectionResult objects to dicts
+        correction_details = []
+        for corr in corrections:
+            # Only include actual corrections (where word changed)
+            if corr.original_word != corr.corrected_word:
+                correction_details.append({
+                    "original": corr.original_word,
+                    "corrected": corr.corrected_word,
+                    "confidence": corr.confidence,
+                    "edit_distance": corr.edit_distance,
+                })
+        
+        return corrected_text, correction_details
 

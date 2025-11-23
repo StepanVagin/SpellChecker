@@ -143,6 +143,78 @@
             background: #d0d0d0;
         }
 
+        .model-selector {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .model-selector h3 {
+            color: #667eea;
+            font-size: 1rem;
+            margin-bottom: 12px;
+        }
+
+        .model-options {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .model-option {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .model-option input[type="radio"] {
+            display: none;
+        }
+
+        .model-option label {
+            display: block;
+            padding: 15px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .model-option input[type="radio"]:checked + label {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            font-weight: 600;
+        }
+
+        .model-option label:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .model-option .model-title {
+            font-size: 1.1rem;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .model-option .model-description {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .model-unavailable {
+            opacity: 0.5;
+            cursor: not-allowed !important;
+        }
+
+        .model-unavailable:hover {
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
         .corrections-list {
             margin-top: 20px;
             padding: 0;
@@ -191,14 +263,6 @@
             color: #666;
         }
 
-        .confidence-badge {
-            background: #667eea;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
 
         .no-corrections {
             text-align: center;
@@ -291,24 +355,28 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>✨ N-gram Spelling Checker</h1>
-            <p>Powered by statistical language models trained on large text corpora</p>
+            <h1>✨ Spelling Checker</h1>
+            <p>Powered by advanced language models: N-gram and T5</p>
         </div>
 
         {% if model_info %}
         <div class="model-info">
+            {% if model_info.ngram and model_info.ngram.available %}
             <div class="model-info-item">
-                <strong>{{ model_info.num_models }}</strong>
-                <span>Models Loaded</span>
+                <strong>{{ model_info.ngram.num_models }}</strong>
+                <span>N-gram Models</span>
             </div>
             <div class="model-info-item">
-                <strong>{{ '{:,}'.format(model_info.vocabulary_size) }}</strong>
-                <span>Words in Vocabulary</span>
+                <strong>{{ '{:,}'.format(model_info.ngram.vocabulary_size) }}</strong>
+                <span>Vocabulary Size</span>
             </div>
+            {% endif %}
+            {% if model_info.t5 and model_info.t5.available %}
             <div class="model-info-item">
-                <strong>{{ ', '.join(model_info.models_loaded) }}</strong>
-                <span>Model Types</span>
+                <strong>✓</strong>
+                <span>T5 Model Ready</span>
             </div>
+            {% endif %}
         </div>
         {% endif %}
 
@@ -319,6 +387,34 @@
                 class="input-area" 
                 placeholder="Type or paste your text here... Try: 'I love this prodct very much' or 'The weather is beutiful today'"
             ></textarea>
+
+            <div class="model-selector">
+                <h3>🔧 Select Model:</h3>
+                <div class="model-options">
+                    <div class="model-option">
+                        <input type="radio" id="model-ngram" name="model" value="ngram" 
+                               {% if model_info.ngram and model_info.ngram.available %}checked{% else %}disabled{% endif %}>
+                        <label for="model-ngram" {% if not model_info.ngram or not model_info.ngram.available %}class="model-unavailable"{% endif %}>
+                            <div class="model-title">📊 N-gram</div>
+                            <div class="model-description">Statistical language model with word-level corrections</div>
+                            {% if not model_info.ngram or not model_info.ngram.available %}
+                            <div class="model-description" style="color: #dc3545; margin-top: 5px;">Not available</div>
+                            {% endif %}
+                        </label>
+                    </div>
+                    <div class="model-option">
+                        <input type="radio" id="model-t5" name="model" value="t5" 
+                               {% if model_info.t5 and model_info.t5.available %}{% if not model_info.ngram or not model_info.ngram.available %}checked{% endif %}{% else %}disabled{% endif %}>
+                        <label for="model-t5" {% if not model_info.t5 or not model_info.t5.available %}class="model-unavailable"{% endif %}>
+                            <div class="model-title">🤖 T5</div>
+                            <div class="model-description">Transformer model for sentence-level corrections</div>
+                            {% if not model_info.t5 or not model_info.t5.available %}
+                            <div class="model-description" style="color: #dc3545; margin-top: 5px;">Not available</div>
+                            {% endif %}
+                        </label>
+                    </div>
+                </div>
+            </div>
 
             <div class="examples">
                 <h3>Try these examples:</h3>
@@ -367,6 +463,14 @@
                 return;
             }
 
+            // Get selected model
+            const selectedModel = document.querySelector('input[name="model"]:checked');
+            if (!selectedModel) {
+                alert('⚠️ Please select a model!');
+                return;
+            }
+            const modelType = selectedModel.value;
+
             const loading = document.getElementById('loading');
             const resultsCard = document.getElementById('resultsCard');
             
@@ -379,7 +483,10 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ text: inputText })
+                    body: JSON.stringify({ 
+                        text: inputText,
+                        model: modelType
+                    })
                 });
 
                 const data = await response.json();
@@ -393,15 +500,37 @@
 
                 const correctionsList = document.getElementById('correctionsList');
                 
+                // Add model information
+                let modelBadge = `<div style="margin-bottom: 15px; text-align: center;">
+                    <span style="background: #667eea; color: white; padding: 6px 16px; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">
+                        Model: ${data.model_used}
+                    </span>
+                </div>`;
+                
+                if (data.note) {
+                    modelBadge += `<div style="margin-bottom: 15px; padding: 10px; background: #fff3cd; border-radius: 8px; font-size: 0.9rem; color: #856404;">
+                        ℹ️ ${data.note}
+                    </div>`;
+                }
+                
                 if (data.corrections.length === 0) {
-                    correctionsList.innerHTML = `
-                        <div class="no-corrections">
-                            <div class="emoji">🎉</div>
-                            <p><strong>Perfect!</strong> No spelling errors found.</p>
-                        </div>
-                    `;
+                    if (data.original === data.corrected) {
+                        correctionsList.innerHTML = modelBadge + `
+                            <div class="no-corrections">
+                                <div class="emoji">🎉</div>
+                                <p><strong>Perfect!</strong> No spelling errors found.</p>
+                            </div>
+                        `;
+                    } else {
+                        correctionsList.innerHTML = modelBadge + `
+                            <div class="no-corrections">
+                                <div class="emoji">✨</div>
+                                <p><strong>Text corrected!</strong> See the result above.</p>
+                            </div>
+                        `;
+                    }
                 } else {
-                    let html = '<ul class="corrections-list">';
+                    let html = modelBadge + '<ul class="corrections-list">';
                     data.corrections.forEach(corr => {
                         html += `
                             <li class="correction-item">
@@ -411,7 +540,6 @@
                                     <span class="correction-fixed">${corr.corrected}</span>
                                 </div>
                                 <div class="correction-meta">
-                                    <span class="confidence-badge">Confidence: ${(corr.confidence * 100).toFixed(0)}%</span>
                                     <span>Edit Distance: ${corr.edit_distance}</span>
                                 </div>
                             </li>
