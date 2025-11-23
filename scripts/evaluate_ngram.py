@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Evaluation script for N-gram spelling checker
 Calculates Exact Match (EM), Precision, Recall, and F1 Score
@@ -10,9 +11,10 @@ import json
 import ast
 from typing import List, Tuple
 import re
+from pathlib import Path
 
-# Add the src directory to the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+# Add the src directory to the path (go up one level from scripts/)
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from spellchecker.models.ngram_model import NGramModel, SpellingChecker
 
@@ -22,8 +24,29 @@ def load_dataset(filepath: str) -> Tuple[List[str], List[str]]:
     print(f"Loading dataset from {filepath}...")
     df = pd.read_csv(filepath)
     
-    source_sentences = df['source_sentence'].tolist()
-    target_sentences = df['target_sentence'].tolist()
+    # Handle different column name formats
+    if 'source_text' in df.columns and 'target_text' in df.columns:
+        source_col = df['source_text']
+        target_col = df['target_text']
+    elif 'source_sentence' in df.columns and 'target_sentence' in df.columns:
+        source_col = df['source_sentence']
+        target_col = df['target_sentence']
+    else:
+        raise ValueError(f"Dataset must have 'source_text'/'target_text' or 'source_sentence'/'target_sentence' columns. Found: {df.columns.tolist()}")
+    
+    # Convert to string and handle NaN values
+    source_sentences = []
+    target_sentences = []
+    
+    for src, tgt in zip(source_col, target_col):
+        # Convert to string, handle NaN/None values
+        src_str = str(src) if pd.notna(src) else ""
+        tgt_str = str(tgt) if pd.notna(tgt) else ""
+        
+        # Skip rows where both are empty
+        if src_str.strip() or tgt_str.strip():
+            source_sentences.append(src_str)
+            target_sentences.append(tgt_str)
     
     print(f"Loaded {len(source_sentences)} sentence pairs")
     return source_sentences, target_sentences
@@ -81,6 +104,26 @@ def filter_spelling_only_sentences(source_sentences: List[str],
 
 def preprocess_sentence(sentence: str) -> str:
     """Preprocess sentence for comparison"""
+    # Handle None, NaN, or non-string values
+    if sentence is None:
+        return ""
+    
+    # Check for NaN (pandas float NaN)
+    try:
+        import math
+        if isinstance(sentence, float) and math.isnan(sentence):
+            return ""
+    except:
+        pass
+    
+    # Convert to string if not already
+    if not isinstance(sentence, str):
+        sentence = str(sentence)
+    
+    # Skip if it's the string "nan"
+    if sentence.lower() == "nan":
+        return ""
+    
     # Convert to lowercase
     sentence = sentence.lower().strip()
     # Remove extra whitespace
@@ -325,11 +368,17 @@ def calculate_spelling_metrics(source_sentences: List[str],
     }
 
 
-def load_ngram_models(model_dir: str, limit_vocab: int = 10000) -> Tuple[List[NGramModel], int]:
-    """Load trained N-gram models and optionally limit vocabulary for faster evaluation"""
+def load_ngram_models(model_dir: str, limit_vocab: int = None) -> Tuple[List[NGramModel], int]:
+    """Load trained N-gram models and optionally limit vocabulary for faster evaluation
+    
+    Args:
+        model_dir: Directory containing model files
+        limit_vocab: Maximum vocabulary size (None for no limit)
+    """
     models = []
     original_vocab_size = 0
     
+    # Load 1-gram, 2-gram, and 3-gram models
     for n in [1, 2, 3]:
         model_path = os.path.join(model_dir, f'{n}gram_model.json')
         if os.path.exists(model_path):
@@ -340,18 +389,23 @@ def load_ngram_models(model_dir: str, limit_vocab: int = 10000) -> Tuple[List[NG
             if n == 1:
                 original_vocab_size = len(model.vocabulary)
                 
-                # Limit vocabulary to most frequent words for faster evaluation
-                if limit_vocab and len(model.vocabulary) > limit_vocab:
+                # Limit vocabulary to most frequent words for faster evaluation (if requested)
+                if limit_vocab is not None and len(model.vocabulary) > limit_vocab:
                     print(f"Limiting vocabulary from {len(model.vocabulary)} to {limit_vocab} most common words...")
                     # Get most frequent words based on unigram counts
                     word_counts = [(word, count) for (word,), count in model.ngram_counts.items()]
                     word_counts.sort(key=lambda x: x[1], reverse=True)
                     top_words = set([word for word, _ in word_counts[:limit_vocab]])
                     model.vocabulary = top_words
+                else:
+                    print(f"Using full vocabulary: {len(model.vocabulary)} words")
             
             models.append(model)
         else:
             print(f"Warning: {n}-gram model not found at {model_path}")
+    
+    if len(models) == 0:
+        print("Error: No n-gram models found!")
     
     return models, original_vocab_size
 
@@ -552,26 +606,22 @@ def evaluate_spelling_dataset(dataset_name: str,
 
 
 def main():
-    # Paths
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    data_dir = os.path.join(base_dir, 'data', 'processed')
+    # Get project root (go up one level from scripts/)
+    project_root = Path(__file__).parent.parent
+    base_dir = str(project_root)
+    
+    # Paths relative to project root
     model_dir = os.path.join(base_dir, 'models', 'ngram')
+    test_path = os.path.join(base_dir, 'test.csv')
     
-    # Dataset paths
-    conll_path = os.path.join(data_dir, 'conll_nucle_sft.csv')
-    birkbeck_path = os.path.join(data_dir, 'birkbeck_spelling_corpus.csv')
-    
-    # Check if datasets exist
-    if not os.path.exists(conll_path):
-        print(f"Error: Dataset not found at {conll_path}")
-        return
-    if not os.path.exists(birkbeck_path):
-        print(f"Error: Dataset not found at {birkbeck_path}")
+    # Check if test dataset exists
+    if not os.path.exists(test_path):
+        print(f"Error: Test dataset not found at {test_path}")
         return
     
-    # Load N-gram models with larger vocabulary for better accuracy
+    # Load N-gram models with full vocabulary (no limit)
     print("Loading N-gram models...")
-    ngram_models, original_vocab_size = load_ngram_models(model_dir, limit_vocab=20000)
+    ngram_models, original_vocab_size = load_ngram_models(model_dir, limit_vocab=None)
     
     if not ngram_models:
         print("Error: No N-gram models found!")
@@ -581,44 +631,28 @@ def main():
     print(f"Original vocabulary size: {original_vocab_size} words")
     
     # Create spelling checker
+    print("Using spelling checker...")
     spelling_checker = SpellingChecker(
         ngram_models=ngram_models,
-        probability_threshold=0.0001  # Adjust threshold as needed
+        probability_threshold=0.0001 
     )
     
     print(f"Active vocabulary size: {len(spelling_checker.vocabulary)} words")
-    print(f"\nNote: Using vocabulary of {len(spelling_checker.vocabulary)} words with 500 samples for improved accuracy.")
-    print(f"For full evaluation with all data, set max_samples=None in the code.\n")
+    print(f"\nEvaluating on test.csv (full dataset, no sample limit)...\n")
     
-    # Load datasets
-    conll_source, conll_target = load_dataset(conll_path)
-    birkbeck_source, birkbeck_target, birkbeck_error_types = load_dataset_with_error_types(birkbeck_path)
+    # Load test dataset
+    test_source, test_target = load_dataset(test_path)
     
-    # Evaluate on both datasets
-    # Using 500 samples for better statistical significance
-    
-    conll_csv_path = os.path.join(base_dir, 'conll_evaluation_results.csv')
-    conll_metrics = evaluate_dataset(
-        "CoNLL-14 (NUCLE SFT)",
-        conll_source,
-        conll_target,
+    # Evaluate on test dataset - full evaluation (no sample limit)
+    test_csv_path = os.path.join(base_dir, 'test_evaluation_results.csv')
+    test_metrics = evaluate_dataset(
+        "Test Dataset",
+        test_source,
+        test_target,
         spelling_checker,
-        max_samples=500,  # Increased from 100 to 500 for better accuracy
+        max_samples=None,  # No limit - evaluate on full dataset
         save_csv=True,
-        csv_path=conll_csv_path
-    )
-    
-    # Use spelling-only evaluation for Birkbeck (mechanics errors only)
-    birkbeck_csv_path = os.path.join(base_dir, 'birkbeck_evaluation_results.csv')
-    birkbeck_metrics = evaluate_spelling_dataset(
-        "Birkbeck Spelling Corpus",
-        birkbeck_source,
-        birkbeck_target,
-        birkbeck_error_types,
-        spelling_checker,
-        max_samples=500,  # Increased from 100 to 500 for better accuracy
-        save_csv=True,
-        csv_path=birkbeck_csv_path
+        csv_path=test_csv_path
     )
     
     # Print summary
@@ -627,23 +661,15 @@ def main():
     print(f"{'='*70}")
     print(f"\n{'Dataset':<35} {'EM':<10} {'Precision':<12} {'Recall':<10} {'F1':<10}")
     print(f"{'-'*75}")
-    print(f"{'CoNLL-14 (NUCLE SFT)':<35} "
-          f"{conll_metrics['exact_match']:>8.2f}% "
-          f"{conll_metrics['precision']:>10.2f}% "
-          f"{conll_metrics['recall']:>8.2f}% "
-          f"{conll_metrics['f1_score']:>8.2f}%")
-    
-    if birkbeck_metrics:
-        print(f"{'Birkbeck (Spelling Only)':<35} "
-              f"{birkbeck_metrics['exact_match']:>8.2f}% "
-              f"{birkbeck_metrics['precision']:>10.2f}% "
-              f"{birkbeck_metrics['recall']:>8.2f}% "
-              f"{birkbeck_metrics['f1_score']:>8.2f}%")
+    print(f"{'Test Dataset':<35} "
+          f"{test_metrics['exact_match']:>8.2f}% "
+          f"{test_metrics['precision']:>10.2f}% "
+          f"{test_metrics['recall']:>8.2f}% "
+          f"{test_metrics['f1_score']:>8.2f}%")
     
     # Save results to file
     results = {
-        'conll': conll_metrics,
-        'birkbeck_spelling_only': birkbeck_metrics
+        'test': test_metrics
     }
     
     results_path = os.path.join(base_dir, 'evaluation_results.json')
@@ -651,6 +677,7 @@ def main():
         json.dump(results, f, indent=2)
     
     print(f"\nResults saved to {results_path}")
+    print(f"Detailed results saved to {test_csv_path}")
 
 
 if __name__ == '__main__':

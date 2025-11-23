@@ -28,7 +28,7 @@ pip install -r requirements.txt
 
 echo ""
 echo "Step 2: Creating directories..."
-mkdir -p data/raw/unsupervised
+mkdir -p data/unsupervised
 mkdir -p data/processed/unsupervised
 mkdir -p models/ngram
 

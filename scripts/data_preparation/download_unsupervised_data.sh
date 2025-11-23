@@ -18,9 +18,9 @@ fi
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
 
-# Create data/raw/unsupervised directory relative to project root
-mkdir -p "$PROJECT_ROOT/data/raw/unsupervised"
-cd "$PROJECT_ROOT/data/raw/unsupervised"
+# Create data/unsupervised directory relative to project root
+mkdir -p "$PROJECT_ROOT/data/unsupervised"
+cd "$PROJECT_ROOT/data/unsupervised"
 
 echo "================================================"
 echo "Downloading Unsupervised Text Corpora"
@@ -38,7 +38,7 @@ echo ""
 echo "Wikipedia Setup..."
 
 # Create Wikipedia directory
-WIKIPEDIA_DIR="$PROJECT_ROOT/data/raw/unsupervised/wikipedia"
+WIKIPEDIA_DIR="$PROJECT_ROOT/data/unsupervised/wikipedia"
 mkdir -p "$WIKIPEDIA_DIR"
 
 if [ "$SAMPLE_MODE" = true ]; then
@@ -75,7 +75,7 @@ fi
 echo ""
 echo "CC-News Setup..."
 
-CCNEWS_DIR="$PROJECT_ROOT/data/raw/unsupervised/ccnews"
+CCNEWS_DIR="$PROJECT_ROOT/data/unsupervised/ccnews"
 mkdir -p "$CCNEWS_DIR"
 
 echo "Downloading and processing CC-News (compressed pickle)..."
@@ -97,7 +97,7 @@ fi
 # echo ""
 # echo "BookCorpus Setup..."
 #
-# BOOKCORPUS_DIR="$PROJECT_ROOT/data/raw/unsupervised/bookcorpus"
+# BOOKCORPUS_DIR="$PROJECT_ROOT/data/unsupervised/bookcorpus"
 # mkdir -p "$BOOKCORPUS_DIR/books"
 #
 # echo "Downloading and processing BookCorpus (compressed pickle)..."
@@ -130,7 +130,7 @@ from spellchecker.data.parsers.unsupervised_parser import (
     process_unsupervised_corpus,
 )
 
-base_raw = Path("data/raw/unsupervised")
+base_raw = Path("data/unsupervised")
 base_out = Path("data/processed/unsupervised")
 base_out.mkdir(parents=True, exist_ok=True)
 
