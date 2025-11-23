@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✨ N-gram Spelling Checker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        .model-info {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 30px;
+            color: white;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .model-info-item {
+            text-align: center;
+        }
+
+        .model-info-item strong {
+            display: block;
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            margin-bottom: 25px;
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .input-area, .output-area {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        .input-area:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .output-area {
+            background: #f8f9fa;
+            border-color: #d0d0d0;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            flex: 1;
+            min-width: 150px;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        .corrections-list {
+            margin-top: 20px;
+            padding: 0;
+            list-style: none;
+        }
+
+        .correction-item {
+            background: linear-gradient(to right, #f8f9fa, #e9ecef);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            border-left: 4px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .correction-text {
+            flex: 1;
+            font-size: 1rem;
+        }
+
+        .correction-original {
+            color: #dc3545;
+            font-weight: 600;
+            text-decoration: line-through;
+        }
+
+        .correction-arrow {
+            color: #667eea;
+            font-weight: bold;
+            margin: 0 10px;
+        }
+
+        .correction-fixed {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .correction-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .confidence-badge {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .no-corrections {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .no-corrections .emoji {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .examples {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .examples h3 {
+            color: #667eea;
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+
+        .example-btn {
+            display: inline-block;
+            padding: 8px 16px;
+            margin: 5px;
+            background: white;
+            border: 2px solid #667eea;
+            color: #667eea;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .example-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✨ N-gram Spelling Checker</h1>
+            <p>Powered by statistical language models trained on large text corpora</p>
+        </div>
+
+        {% if model_info %}
+        <div class="model-info">
+            <div class="model-info-item">
+                <strong>{{ model_info.num_models }}</strong>
+                <span>Models Loaded</span>
+            </div>
+            <div class="model-info-item">
+                <strong>{{ '{:,}'.format(model_info.vocabulary_size) }}</strong>
+                <span>Words in Vocabulary</span>
+            </div>
+            <div class="model-info-item">
+                <strong>{{ ', '.join(model_info.models_loaded) }}</strong>
+                <span>Model Types</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <h2>📝 Enter Text to Check</h2>
+            <textarea 
+                id="inputText" 
+                class="input-area" 
+                placeholder="Type or paste your text here... Try: 'I love this prodct very much' or 'The weather is beutiful today'"
+            ></textarea>
+
+            <div class="examples">
+                <h3>Try these examples:</h3>
+                <span class="example-btn" onclick="useExample('I love this prodct very much')">Product typo</span>
+                <span class="example-btn" onclick="useExample('The weather is beutiful today')">Beautiful typo</span>
+                <span class="example-btn" onclick="useExample('She went to the libary yesterday')">Library typo</span>
+                <span class="example-btn" onclick="useExample('This is a wonderfull experince')">Multiple typos</span>
+                <span class="example-btn" onclick="useExample('The algoritm works very well')">Algorithm typo</span>
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="checkSpelling()">🔍 Check Spelling</button>
+                <button class="btn btn-secondary" onclick="clearAll()">🗑️ Clear</button>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Checking spelling...</p>
+        </div>
+
+        <div class="card" id="resultsCard" style="display: none;">
+            <h2>✅ Corrected Text</h2>
+            <textarea id="outputText" class="output-area" readonly></textarea>
+
+            <h2 style="margin-top: 25px;">📋 Corrections Made</h2>
+            <div id="correctionsList"></div>
+        </div>
+    </div>
+
+    <script>
+        function useExample(text) {
+            document.getElementById('inputText').value = text;
+        }
+
+        function clearAll() {
+            document.getElementById('inputText').value = '';
+            document.getElementById('resultsCard').style.display = 'none';
+        }
+
+        async function checkSpelling() {
+            const inputText = document.getElementById('inputText').value.trim();
+            
+            if (!inputText) {
+                alert('⚠️ Please enter some text to check!');
+                return;
+            }
+
+            const loading = document.getElementById('loading');
+            const resultsCard = document.getElementById('resultsCard');
+            
+            loading.classList.add('active');
+            resultsCard.style.display = 'none';
+
+            try {
+                const response = await fetch('/check', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: inputText })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('❌ Error: ' + data.error);
+                    return;
+                }
+
+                document.getElementById('outputText').value = data.corrected;
+
+                const correctionsList = document.getElementById('correctionsList');
+                
+                if (data.corrections.length === 0) {
+                    correctionsList.innerHTML = `
+                        <div class="no-corrections">
+                            <div class="emoji">🎉</div>
+                            <p><strong>Perfect!</strong> No spelling errors found.</p>
+                        </div>
+                    `;
+                } else {
+                    let html = '<ul class="corrections-list">';
+                    data.corrections.forEach(corr => {
+                        html += `
+                            <li class="correction-item">
+                                <div class="correction-text">
+                                    <span class="correction-original">${corr.original}</span>
+                                    <span class="correction-arrow">→</span>
+                                    <span class="correction-fixed">${corr.corrected}</span>
+                                </div>
+                                <div class="correction-meta">
+                                    <span class="confidence-badge">Confidence: ${(corr.confidence * 100).toFixed(0)}%</span>
+                                    <span>Edit Distance: ${corr.edit_distance}</span>
+                                </div>
+                            </li>
+                        `;
+                    });
+                    html += '</ul>';
+                    correctionsList.innerHTML = html;
+                }
+
+                resultsCard.style.display = 'block';
+                resultsCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+            } catch (error) {
+                alert('❌ Error: ' + error.message);
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        document.getElementById('inputText').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                checkSpelling();
+            }
+        });
+    </script>
+</body>
+</html>
+
+

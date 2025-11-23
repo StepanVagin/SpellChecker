@@ -7,9 +7,14 @@ wikiextractor>=3.0.0
 # CC-News and BookCorpus download
 datasets>=2.14.0
 
+# N-gram spelling checker
+nltk>=3.8.0
+
+# Web interface
+flask>=2.3.0
+
 # Optional: For production n-gram training
 # Uncomment if needed:
 # kenlm>=0.2.0
-# nltk>=3.8.0
 
 
