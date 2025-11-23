@@ -9,6 +9,18 @@ data/raw/
 *.pkl
 *.bin
 
+# Unsupervised data (all locations)
+data/unsupervised/
+data/processed/unsupervised/
+data/data/raw/unsupervised/
+**/unsupervised/**/*.pkl.gz
+**/unsupervised/**/*.txt
+**/unsupervised/**/*.jsonl
+**/unsupervised/**/*.xml.bz2
+**/unsupervised/**/extracted/
+**/unsupervised/**/books/
+**/unsupervised/**/1billion/
+
 # C extensions
 *.so
 

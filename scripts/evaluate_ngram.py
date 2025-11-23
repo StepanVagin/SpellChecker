@@ -9,6 +9,7 @@ import sys
 import pandas as pd
 import json
 import ast
+import argparse
 from typing import List, Tuple
 import re
 from pathlib import Path
@@ -606,51 +607,185 @@ def evaluate_spelling_dataset(dataset_name: str,
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="Evaluate n-gram spelling checker on a dataset",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Evaluate on default test.csv
+  python scripts/evaluate_ngram.py
+
+  # Evaluate on custom dataset
+  python scripts/evaluate_ngram.py --dataset data/processed/birkbeck_filtered_data.csv
+
+  # Evaluate with custom model directory
+  python scripts/evaluate_ngram.py --dataset test.csv --models models/ngram_custom
+
+  # Evaluate on first 100 samples only
+  python scripts/evaluate_ngram.py --dataset test.csv --max-samples 100
+
+  # Custom output paths
+  python scripts/evaluate_ngram.py --dataset test.csv --output-dir results/
+        """
+    )
+    
+    parser.add_argument(
+        '--dataset',
+        type=str,
+        default=None,
+        help='Path to CSV dataset file (default: test.csv in project root). '
+             'Must have columns: source_text/target_text or source_sentence/target_sentence'
+    )
+    
+    parser.add_argument(
+        '--models',
+        type=str,
+        default=None,
+        help='Directory containing n-gram models (default: models/ngram)'
+    )
+    
+    parser.add_argument(
+        '--output-dir',
+        type=str,
+        default=None,
+        help='Directory to save output files (default: project root)'
+    )
+    
+    parser.add_argument(
+        '--output-csv',
+        type=str,
+        default=None,
+        help='Path for detailed CSV results (default: <dataset_name>_evaluation_results.csv)'
+    )
+    
+    parser.add_argument(
+        '--output-json',
+        type=str,
+        default=None,
+        help='Path for JSON results summary (default: evaluation_results.json)'
+    )
+    
+    parser.add_argument(
+        '--max-samples',
+        type=int,
+        default=None,
+        help='Maximum number of samples to evaluate (default: all)'
+    )
+    
+    parser.add_argument(
+        '--probability-threshold',
+        type=float,
+        default=0.0001,
+        help='Probability threshold for spelling checker (default: 0.0001)'
+    )
+    
+    parser.add_argument(
+        '--limit-vocab',
+        type=int,
+        default=None,
+        help='Limit vocabulary to N most frequent words for faster evaluation (default: no limit)'
+    )
+    
+    parser.add_argument(
+        '--dataset-name',
+        type=str,
+        default=None,
+        help='Name for the dataset in output (default: derived from filename)'
+    )
+    
+    args = parser.parse_args()
+    
     # Get project root (go up one level from scripts/)
     project_root = Path(__file__).parent.parent
     base_dir = str(project_root)
     
-    # Paths relative to project root
-    model_dir = os.path.join(base_dir, 'models', 'ngram')
-    test_path = os.path.join(base_dir, 'test.csv')
+    # Set default paths
+    if args.dataset is None:
+        test_path = os.path.join(base_dir, 'test.csv')
+    else:
+        test_path = args.dataset if os.path.isabs(args.dataset) else os.path.join(base_dir, args.dataset)
     
-    # Check if test dataset exists
+    if args.models is None:
+        model_dir = os.path.join(base_dir, 'models', 'ngram')
+    else:
+        model_dir = args.models if os.path.isabs(args.models) else os.path.join(base_dir, args.models)
+    
+    if args.output_dir is None:
+        output_dir = base_dir
+    else:
+        output_dir = args.output_dir if os.path.isabs(args.output_dir) else os.path.join(base_dir, args.output_dir)
+        os.makedirs(output_dir, exist_ok=True)
+    
+    # Check if dataset exists
     if not os.path.exists(test_path):
-        print(f"Error: Test dataset not found at {test_path}")
+        print(f"Error: Dataset not found at {test_path}")
+        print(f"Please provide a valid CSV file with --dataset option")
         return
     
-    # Load N-gram models with full vocabulary (no limit)
-    print("Loading N-gram models...")
-    ngram_models, original_vocab_size = load_ngram_models(model_dir, limit_vocab=None)
+    # Get dataset name
+    if args.dataset_name is None:
+        dataset_name = Path(test_path).stem.replace('_', ' ').title()
+    else:
+        dataset_name = args.dataset_name
+    
+    # Set output file paths
+    if args.output_csv is None:
+        dataset_basename = Path(test_path).stem
+        test_csv_path = os.path.join(output_dir, f'{dataset_basename}_evaluation_results.csv')
+    else:
+        test_csv_path = args.output_csv if os.path.isabs(args.output_csv) else os.path.join(output_dir, args.output_csv)
+    
+    if args.output_json is None:
+        results_path = os.path.join(output_dir, 'evaluation_results.json')
+    else:
+        results_path = args.output_json if os.path.isabs(args.output_json) else os.path.join(output_dir, args.output_json)
+    
+    print("="*70)
+    print("N-gram Spelling Checker Evaluation")
+    print("="*70)
+    print(f"Dataset: {test_path}")
+    print(f"Models: {model_dir}")
+    print(f"Output directory: {output_dir}")
+    print(f"Max samples: {args.max_samples if args.max_samples else 'All'}")
+    print(f"Probability threshold: {args.probability_threshold}")
+    if args.limit_vocab:
+        print(f"Vocabulary limit: {args.limit_vocab} words")
+    print("="*70)
+    
+    # Load N-gram models
+    print("\nLoading N-gram models...")
+    ngram_models, original_vocab_size = load_ngram_models(model_dir, limit_vocab=args.limit_vocab)
     
     if not ngram_models:
         print("Error: No N-gram models found!")
         return
     
     print(f"Loaded {len(ngram_models)} N-gram models")
-    print(f"Original vocabulary size: {original_vocab_size} words")
+    print(f"Vocabulary size: {original_vocab_size} words")
     
     # Create spelling checker
-    print("Using spelling checker...")
+    print("\nInitializing spelling checker...")
     spelling_checker = SpellingChecker(
         ngram_models=ngram_models,
-        probability_threshold=0.0001 
+        probability_threshold=args.probability_threshold
     )
     
     print(f"Active vocabulary size: {len(spelling_checker.vocabulary)} words")
-    print(f"\nEvaluating on test.csv (full dataset, no sample limit)...\n")
     
-    # Load test dataset
+    # Load dataset
+    print(f"\nLoading dataset from {test_path}...")
     test_source, test_target = load_dataset(test_path)
     
-    # Evaluate on test dataset - full evaluation (no sample limit)
-    test_csv_path = os.path.join(base_dir, 'test_evaluation_results.csv')
+    print(f"Loaded {len(test_source)} sentence pairs")
+    
+    # Evaluate on dataset
+    print(f"\nEvaluating on {dataset_name}...")
     test_metrics = evaluate_dataset(
-        "Test Dataset",
+        dataset_name,
         test_source,
         test_target,
         spelling_checker,
-        max_samples=None,  # No limit - evaluate on full dataset
+        max_samples=args.max_samples,
         save_csv=True,
         csv_path=test_csv_path
     )
@@ -661,7 +796,7 @@ def main():
     print(f"{'='*70}")
     print(f"\n{'Dataset':<35} {'EM':<10} {'Precision':<12} {'Recall':<10} {'F1':<10}")
     print(f"{'-'*75}")
-    print(f"{'Test Dataset':<35} "
+    print(f"{dataset_name:<35} "
           f"{test_metrics['exact_match']:>8.2f}% "
           f"{test_metrics['precision']:>10.2f}% "
           f"{test_metrics['recall']:>8.2f}% "
@@ -669,15 +804,14 @@ def main():
     
     # Save results to file
     results = {
-        'test': test_metrics
+        dataset_name.lower().replace(' ', '_'): test_metrics
     }
     
-    results_path = os.path.join(base_dir, 'evaluation_results.json')
     with open(results_path, 'w') as f:
         json.dump(results, f, indent=2)
     
-    print(f"\nResults saved to {results_path}")
-    print(f"Detailed results saved to {test_csv_path}")
+    print(f"\n✓ Results saved to {results_path}")
+    print(f"✓ Detailed results saved to {test_csv_path}")
 
 
 if __name__ == '__main__':
