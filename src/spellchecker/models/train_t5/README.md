@@ -1,6 +1,13 @@
 # How to Train the T5 Model
 
-### 1. Configuration
+### 1. Installation
+Before configuring or running the pipeline, ensure you have the specific dependencies installed for the T5 training module. Run the following command from the project root:
+
+```bash
+pip install -r src/spellchecker/models/train_t5/requirements.txt
+```
+
+### 2. Configuration
 Open the configuration file located at:
 `src/spellchecker/models/conf/t5_train_cfg.yaml`
 
@@ -48,16 +55,15 @@ metrics:
   enabled: true                     # Enable or disable metric calculation after inference
 ```
 
-### 2. Execution
-Once the configuration is set, navigate to the source directory and run the training pipeline module.
+### 3. Execution
+Once the dependencies are installed and the configuration is set, navigate to the source directory and run the training pipeline module.
 
 ```bash
 cd src
 python -m spellchecker.models.train_t5.pipeline
 ```
 
-### 3. Pipeline Overview
-
+### 4. Pipeline Overview
 The automated pipeline performs the following actions sequentially:
 1.  **Workspace Setup:** Automatically creates a unique folder for the current training instance.
 2.  **Data Splitting:** Splits the source data into training, validation, and testing folds.
