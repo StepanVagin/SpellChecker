@@ -165,6 +165,14 @@ corrected, corrections = checker.correct_text("I love this prodct")
 print(corrected)  # "I love this product"
 ```
 
+### T5 Transformer Model
+
+For deep learning-based correction, we provide a complete pipeline to train and evaluate T5 models.
+
+You can find the detailed technical guide on configuration and execution here:
+**[How to Train T5 Model](src/spellchecker/models/train_t5/README.md)**
+
+
 ### Process Unsupervised Data
 
 ```bash
@@ -197,6 +205,7 @@ parser.save_to_file(
 ## Documentation
 
 - **[N-gram Spelling Checker Guide](README_NGRAM.md)**: Complete guide for the n-gram spelling checker
+- **[T5 Training Guide](src/spellchecker/models/train_t5/README.md)**: Technical documentation for T5 model configuration and pipeline
 - **[Quick Start Guide](docs/quick_start_unsupervised.md)**: Get started quickly with unsupervised data
 - **[Unsupervised Data Pipeline](docs/unsupervised_data_pipeline.md)**: Complete pipeline documentation
 - **[Design Document](docs/design_document.md)**: System design and architecture
